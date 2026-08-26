@@ -26,6 +26,7 @@ import { api, streamChat } from '../lib/api';
 import { useApi } from '../lib/useApi';
 import { useT } from '../lib/i18n';
 import { useAppStore } from '../lib/app-store';
+import { cloudConfigured } from '../cloud/client';
 import type { AiProposal, Assistant, AiModel, ChatMessage, ContextItem, ContextUsed, Conversation, ConversationExport, Folder, SearchResults } from '../lib/types';
 import Markdown from '../components/Markdown';
 import { Badge, Button, EmptyState, Modal, Select, Spinner } from '../components/ui';
@@ -253,6 +254,7 @@ export default function ChatPage() {
         model: selectedModel?.model_id,
         provider_id: selectedModel?.provider_id,
         mode: mode || 'general',
+        history: messages.slice(-12).map((message) => ({ role: message.role as 'user' | 'assistant', content: message.content })),
       },
       {
         onStart: (info) => {
@@ -263,13 +265,23 @@ export default function ChatPage() {
           acc += delta;
           setStreamText(acc);
         },
-        onDone: async () => {
+        onDone: async (info) => {
           setStreamText('');
-          if (activeConv) {
+          if (cloudConfigured && activeConv) {
+            setMessages((current) => [...current, {
+              id: `local-ai-${Date.now()}`,
+              conversation_id: activeConv || '',
+              role: 'assistant',
+              content: info.content,
+              model: selectedModel?.model_id || 'gpt-5-mini',
+              provider: 'openai-cloud',
+              created_at: new Date().toISOString(),
+            }]);
+          } else if (activeConv) {
             setConversationId(activeConv);
             await loadMessages(activeConv);
           }
-          refetchConvs();
+          if (!cloudConfigured) refetchConvs();
           // LifeOS: propose structured actions after the reply (non-blocking).
           if (useAppStore.getState().settings.ai?.autoActions !== false) {
             runAutoPropose(text);
@@ -385,6 +397,7 @@ export default function ChatPage() {
           assistant_id: assistantId || undefined,
           model: selectedModel?.model_id,
           provider_id: selectedModel?.provider_id,
+          history: messages.filter((message) => message.id !== m.id).slice(-12).map((message) => ({ role: message.role as 'user' | 'assistant', content: message.content })),
         },
         {
           onDelta: (d) => {

@@ -59,7 +59,7 @@ export const api = {
  * Calls onDelta for each text chunk and resolves when the stream finishes.
  */
 export async function streamChat(
-  payload: { content: string; conversation_id?: string; assistant_id?: string; model?: string; provider_id?: string; page?: string; mode?: string },
+  payload: { content: string; conversation_id?: string; assistant_id?: string; model?: string; provider_id?: string; page?: string; mode?: string; history?: { role: 'user' | 'assistant'; content: string }[] },
   handlers: {
     onStart?: (info: { conversation_id: string; model: string; provider: string }) => void;
     onDelta: (delta: string) => void;
@@ -81,7 +81,12 @@ export async function streamChat(
   });
   if (!res.ok || !res.body) {
     const text = await res.text().catch(() => '');
-    handlers.onError(text || `HTTP ${res.status}`);
+    let message = text || `HTTP ${res.status}`;
+    try {
+      const parsed = JSON.parse(text);
+      message = parsed.error || parsed.message || message;
+    } catch { /* keep response text */ }
+    handlers.onError(message);
     return;
   }
   const reader = res.body.getReader();

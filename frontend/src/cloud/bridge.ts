@@ -499,7 +499,7 @@ export async function tryCloudRequest(path: string, method: Method, input?: unkn
   if (route === '/events' && method === 'GET') return { handled: true, data: await repo('activity_events').list({}, { order: 'created_at', ascending: false, limit: Number(url.searchParams.get('limit') || 30) }) };
   if (route === '/audio/presets' && method === 'GET') return { handled: true, data: await repo('audio_presets').list({}, { order: 'created_at', ascending: false }) };
   if (route === '/providers' && method === 'GET') return { handled: true, data: await repo('ai_provider_profiles').list({}, { order: 'created_at' }) };
-  if (route === '/ai/status' && method === 'GET') { const providers = await repo('ai_provider_profiles').list(); const models = await repo('ai_models').list(); return { handled: true, data: { providers: providers.map((row) => ({ id: row.id, status: 'disconnected', modelCount: models.filter((model) => model.provider_id === row.id).length })) } }; }
+  // In cloud mode the authenticated Vercel function reports OpenAI status.
   if (route === '/backups' && method === 'GET') return { handled: true, data: [] };
   if (route === '/links/suggestions' && method === 'GET') return { handled: true, data: (await repo('link_suggestions').list()).filter((row) => row.status === 'pending') };
   match = route.match(/^\/links\/suggestions\/([^/]+)\/(accept|reject)$/);
