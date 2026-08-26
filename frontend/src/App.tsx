@@ -1,0 +1,43 @@
+import { useEffect, useState } from 'react';
+import { Outlet } from 'react-router-dom';
+import Header from './components/Header';
+import MobileNav from './components/MobileNav';
+import Sidebar from './components/Sidebar';
+import CommandPalette from './components/CommandPalette';
+import AiAssistantPanel from './components/AiAssistantPanel';
+import SmartContextPanel from './components/SmartContextPanel';
+import QuickCapture from './components/QuickCapture';
+
+export default function App() {
+  const [smartOpen, setSmartOpen] = useState(false);
+  const [quickOpen, setQuickOpen] = useState(false);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === 'a') {
+        event.preventDefault();
+        setQuickOpen(true);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+  return (
+    <div className="flex h-dvh overflow-hidden bg-canvas text-ink">
+      <Sidebar />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <Header onOpenSmart={() => setSmartOpen(true)} onOpenQuick={() => setQuickOpen(true)} />
+        <main className="flex-1 overflow-y-auto">
+          <div className="mx-auto w-full max-w-4xl px-4 pb-28 pt-6 md:px-8 lg:pb-10">
+            <Outlet />
+          </div>
+        </main>
+      </div>
+      <MobileNav />
+      <CommandPalette />
+      <AiAssistantPanel />
+      <SmartContextPanel open={smartOpen} onClose={() => setSmartOpen(false)} />
+      <QuickCapture open={quickOpen} onClose={() => setQuickOpen(false)} />
+    </div>
+  );
+}

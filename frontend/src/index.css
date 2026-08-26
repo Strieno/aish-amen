@@ -1,0 +1,197 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============ Design tokens ============ */
+:root {
+  --canvas: 247 250 247;
+  --card: 255 255 255;
+  --elevated: 250 252 250;
+  --brand: 46 125 50;
+  --brand-dark: 27 94 32;
+  --brand-soft: 232 245 233;
+  --brand-accent: 102 187 106;
+  --brand-lighter: 200 230 201;
+  --ink: 38 50 56;
+  --ink-soft: 78 105 87;
+  --ink-faint: 98 120 105;
+  --line: 221 232 223;
+  --warn: 199 126 31;
+  --warn-bg: 253 244 227;
+  --warn-border: 241 224 184;
+  --danger: 176 73 63;
+  --danger-bg: 251 240 238;
+  --danger-border: 238 214 209;
+  --ok: 46 125 50;
+  --ok-bg: 232 245 233;
+  --code-bg: 245 248 246;
+}
+
+html.theme-midnight {
+  --brand: 26 92 140;
+  --brand-dark: 17 66 102;
+  --brand-soft: 227 240 249;
+  --brand-accent: 52 137 192;
+  --brand-lighter: 194 222 242;
+  --ok: 26 92 140;
+  --ok-bg: 227 240 249;
+}
+
+html.theme-warm {
+  --brand: 156 94 42;
+  --brand-dark: 117 68 27;
+  --brand-soft: 250 240 227;
+  --brand-accent: 201 140 80;
+  --brand-lighter: 240 220 195;
+  --ok: 156 94 42;
+  --ok-bg: 250 240 227;
+}
+
+html.theme-contrast {
+  --brand: 0 94 55;
+  --brand-dark: 0 62 36;
+  --brand-soft: 214 240 224;
+  --brand-accent: 0 120 70;
+  --brand-lighter: 180 220 195;
+  --ink: 0 0 0;
+  --ink-soft: 30 30 30;
+  --ink-faint: 60 60 60;
+  --line: 60 60 60;
+  --card: 255 255 255;
+  --canvas: 255 255 255;
+}
+
+html.dark {
+  --canvas: 15 23 18;
+  --card: 23 33 27;
+  --elevated: 30 42 35;
+  --brand: 102 187 106;
+  --brand-dark: 200 230 201;
+  --brand-soft: 27 44 32;
+  --brand-accent: 129 199 132;
+  --brand-lighter: 40 58 46;
+  --ink: 233 240 234;
+  --ink-soft: 180 199 186;
+  --ink-faint: 128 148 135;
+  --line: 45 61 51;
+  --warn: 224 170 100;
+  --warn-bg: 56 42 22;
+  --warn-border: 84 64 34;
+  --danger: 224 130 120;
+  --danger-bg: 61 30 27;
+  --danger-border: 94 44 39;
+  --ok: 129 199 132;
+  --ok-bg: 27 44 32;
+  --code-bg: 28 36 32;
+}
+
+html.dark.theme-midnight {
+  --canvas: 12 18 26;
+  --card: 20 30 42;
+  --elevated: 27 39 54;
+  --brand: 93 173 228;
+  --brand-dark: 188 222 247;
+  --brand-soft: 24 40 58;
+  --brand-accent: 121 188 230;
+  --brand-lighter: 35 56 80;
+  --ok: 93 173 228;
+  --ok-bg: 24 40 58;
+}
+
+html.dark.theme-warm {
+  --canvas: 24 19 13;
+  --card: 34 28 21;
+  --elevated: 44 36 27;
+  --brand: 214 158 96;
+  --brand-dark: 240 210 180;
+  --brand-soft: 46 36 24;
+  --brand-accent: 224 178 122;
+  --brand-lighter: 60 47 32;
+  --ok: 214 158 96;
+  --ok-bg: 46 36 24;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    min-width: 320px;
+  }
+  body {
+    @apply bg-canvas font-sans text-ink;
+    line-height: 1.7;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--brand-lighter)) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  *::-webkit-scrollbar-thumb {
+    @apply rounded-full;
+    background: rgb(var(--brand-lighter));
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  /* Code blocks always LTR, even in RTL UI. */
+  code,
+  pre {
+    direction: ltr;
+    text-align: left;
+    unicode-bidi: isolate;
+  }
+  input[type='date'] {
+    direction: ltr;
+  }
+}
+
+@supports (padding: env(safe-area-inset-bottom)) {
+  .mobile-safe-nav {
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-card border border-line bg-card shadow-card;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-4 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
+  }
+  .btn-primary {
+    @apply btn bg-brand text-white shadow-button hover:bg-brand-dark focus-visible:ring-brand/25;
+  }
+  .btn-ghost {
+    @apply btn border border-line bg-card text-ink-soft hover:border-brand-lighter hover:bg-brand-soft hover:text-brand-dark focus-visible:ring-brand/15;
+  }
+  .btn-danger {
+    @apply btn border border-danger-border bg-danger-bg text-danger hover:bg-danger/10 focus-visible:ring-danger/20;
+  }
+  .btn-icon {
+    @apply inline-flex h-9 w-9 items-center justify-center rounded-xl text-ink-soft transition hover:bg-brand-soft hover:text-brand-dark focus:outline-none focus-visible:ring-4 focus-visible:ring-brand/15;
+  }
+  .input {
+    @apply w-full rounded-2xl border border-line bg-card px-4 py-2.5 text-ink placeholder:text-ink-faint transition focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/15;
+  }
+  .label {
+    @apply mb-1.5 block text-sm font-semibold text-ink-soft;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-pill bg-brand-soft px-3 py-1 text-xs font-semibold text-brand-dark;
+  }
+  .fade-in {
+    @apply animate-fadeIn;
+  }
+  .menu-item {
+    @apply flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-ink-soft transition hover:bg-brand-soft hover:text-brand-dark;
+  }
+  .empty {
+    @apply rounded-card border border-dashed border-line px-6 py-10 text-center text-sm text-ink-faint;
+  }
+  .section-title {
+    @apply text-lg font-bold text-ink;
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "aish-aman-os",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Aish Aman OS — private, local-first, voice-enabled personal AI operating system",
+  "scripts": {
+    "app": "node scripts/launch.mjs",
+    "install:all": "npm install --prefix server && npm install --prefix frontend",
+    "dev:server": "npm run dev --prefix server",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "build": "npm run build --prefix frontend",
+    "start": "npm run start --prefix server",
+    "test:server": "npm test --prefix server",
+    "test:cloud": "node scripts/verify-cloud.mjs",
+    "typecheck": "npm run typecheck --prefix frontend"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  }
+}

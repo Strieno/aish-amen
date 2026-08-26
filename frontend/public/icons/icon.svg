@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="عش آمن">
+  <defs>
+    <linearGradient id="g" x1="80" y1="56" x2="430" y2="458" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#66bb6a"/>
+      <stop offset="1" stop-color="#1b5e20"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="#0f1712"/>
+  <path d="M256 68c57 43 112 62 166 70v112c0 93-58 158-166 194C148 408 90 343 90 250V138c54-8 109-27 166-70Z" fill="url(#g)"/>
+  <path d="M170 273c48-3 78-27 91-78 37 21 61 58 63 105-37-17-70-15-100 7-20 15-34 35-43 61-31-21-49-49-53-84 13-6 27-10 42-11Z" fill="#fff" fill-opacity=".94"/>
+  <path d="M167 351c29-43 67-70 114-82" fill="none" stroke="#1b5e20" stroke-width="18" stroke-linecap="round"/>
+</svg>
