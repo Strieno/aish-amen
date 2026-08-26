@@ -83,7 +83,7 @@ export default function AiAssistantPanel() {
 
     let acc = '';
     await streamChat(
-      { content: text, page, assistant_id: undefined, history: history.slice(-10) },
+      { content: text, page, assistant_id: undefined },
       {
         onDelta: (d) => {
           acc += d;

@@ -26,7 +26,6 @@ import { api, streamChat } from '../lib/api';
 import { useApi } from '../lib/useApi';
 import { useT } from '../lib/i18n';
 import { useAppStore } from '../lib/app-store';
-import { cloudConfigured } from '../cloud/client';
 import type { AiProposal, Assistant, AiModel, ChatMessage, ContextItem, ContextUsed, Conversation, ConversationExport, Folder, SearchResults } from '../lib/types';
 import Markdown from '../components/Markdown';
 import { Badge, Button, EmptyState, Modal, Select, Spinner } from '../components/ui';
@@ -229,75 +228,98 @@ export default function ChatPage() {
   const send = async (textOverride?: string) => {
     const text = (textOverride ?? input).trim();
     if (!text || sending) return;
+
     setInput('');
     setSending(true);
     setStreamText('');
     setProposals([]);
-    abortRef.current = new AbortController();
-    let activeConv = conversationId;
+
+    const controller = new AbortController();
+    abortRef.current = controller;
 
     const userMsg: ChatMessage = {
       id: `local-${Date.now()}`,
-      conversation_id: activeConv || '',
+      conversation_id: conversationId || '',
       role: 'user',
       content: text,
       created_at: new Date().toISOString(),
     };
-    setMessages((m) => [...m, userMsg]);
 
-    let acc = '';
-    await streamChat(
-      {
-        content: text,
-        conversation_id: activeConv || undefined,
-        assistant_id: assistantId || undefined,
-        model: selectedModel?.model_id,
-        provider_id: selectedModel?.provider_id,
-        mode: mode || 'general',
-        history: messages.slice(-12).map((message) => ({ role: message.role as 'user' | 'assistant', content: message.content })),
-      },
-      {
-        onStart: (info) => {
-          activeConv = info.conversation_id;
-          setConversationId(info.conversation_id);
+    setMessages((current) => [...current, userMsg]);
+
+    try {
+      const history = [...messages, userMsg]
+        .slice(-20)
+        .map((message) => ({
+          role: message.role === 'assistant' ? 'assistant' : 'user',
+          content: message.content,
+        }));
+
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        onDelta: (delta) => {
-          acc += delta;
-          setStreamText(acc);
-        },
-        onDone: async (info) => {
-          setStreamText('');
-          if (cloudConfigured && activeConv) {
-            setMessages((current) => [...current, {
-              id: `local-ai-${Date.now()}`,
-              conversation_id: activeConv || '',
-              role: 'assistant',
-              content: info.content,
-              model: selectedModel?.model_id || 'gpt-5-mini',
-              provider: 'openai-cloud',
-              created_at: new Date().toISOString(),
-            }]);
-          } else if (activeConv) {
-            setConversationId(activeConv);
-            await loadMessages(activeConv);
-          }
-          if (!cloudConfigured) refetchConvs();
-          // LifeOS: propose structured actions after the reply (non-blocking).
-          if (useAppStore.getState().settings.ai?.autoActions !== false) {
-            runAutoPropose(text);
-          }
-        },
-        onError: (msg) => {
-          setStreamText(`**${msg}**`);
-          setTimeout(() => setStreamText(''), 4000);
-        },
-        signal: abortRef.current.signal,
-      },
-    );
-    setSending(false);
-    abortRef.current = null;
+        body: JSON.stringify({
+          messages: history,
+        }),
+        signal: controller.signal,
+      });
+
+      const data: any = await response.json();
+
+      if (!response.ok) {
+        const apiError =
+          typeof data?.error === 'string'
+            ? data.error
+            : data?.error?.message || data?.message || 'AI request failed';
+
+        throw new Error(apiError);
+      }
+
+      const reply = data?.choices?.[0]?.message?.content;
+
+      if (typeof reply !== 'string' || !reply.trim()) {
+        throw new Error('AI returned an empty response');
+      }
+
+      const assistantMsg: ChatMessage = {
+        id: `local-ai-${Date.now()}`,
+        conversation_id: conversationId || '',
+        role: 'assistant',
+        content: reply.trim(),
+        created_at: new Date().toISOString(),
+        model: 'DeepSeek',
+      };
+
+      setMessages((current) => [...current, assistantMsg]);
+
+      // Keep the existing LifeOS automatic action-proposal feature active.
+      if (useAppStore.getState().settings.ai?.autoActions !== false) {
+        void runAutoPropose(text);
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
+
+      console.error('DeepSeek error:', error);
+
+      const errorMsg: ChatMessage = {
+        id: `local-error-${Date.now()}`,
+        conversation_id: conversationId || '',
+        role: 'assistant',
+        content: 'تعذر الاتصال بالمساعد الآن. حاول مرة أخرى.',
+        created_at: new Date().toISOString(),
+        model: 'عيش آمن',
+      };
+
+      setMessages((current) => [...current, errorMsg]);
+    } finally {
+      setSending(false);
+      abortRef.current = null;
+    }
   };
-
   const stop = () => {
     abortRef.current?.abort();
     setSending(false);
@@ -397,7 +419,6 @@ export default function ChatPage() {
           assistant_id: assistantId || undefined,
           model: selectedModel?.model_id,
           provider_id: selectedModel?.provider_id,
-          history: messages.filter((message) => message.id !== m.id).slice(-12).map((message) => ({ role: message.role as 'user' | 'assistant', content: message.content })),
         },
         {
           onDelta: (d) => {

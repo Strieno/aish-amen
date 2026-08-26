@@ -24,19 +24,6 @@ VITE_SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLISHABLE_KEY
 VITE_API_BASE_URL=http://localhost:4321/api
 ```
 
-For the hosted OpenAI assistant, configure these as server-side Vercel
-environment variables (never prefix the secret with `VITE_`):
-
-```env
-OPENAI_API_KEY=sk-proj-...
-OPENAI_MODEL=gpt-5-mini
-```
-
-The Vercel function verifies the caller's Supabase access token before it can
-use the OpenAI key. `OPENAI_MODEL` is optional and defaults to `gpt-5-mini`.
-Hosted assistant messages stay in the current browser session and are not
-automatically copied to Supabase.
-
 Run the existing launcher or development commands. The app will show login, signup, password reset, session restoration, sync state, and logout.
 
 ## 3. Move existing SQLite data
