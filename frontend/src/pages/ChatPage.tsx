@@ -226,66 +226,112 @@ export default function ChatPage() {
   };
 
   const send = async (textOverride?: string) => {
-    const text = (textOverride ?? input).trim();
-    if (!text || sending) return;
-    setInput('');
-    setSending(true);
-    setStreamText('');
-    setProposals([]);
-    abortRef.current = new AbortController();
-    let activeConv = conversationId;
+  const text = (textOverride ?? input).trim();
 
-    const userMsg: ChatMessage = {
-      id: `local-${Date.now()}`,
-      conversation_id: activeConv || '',
-      role: 'user',
-      content: text,
-      created_at: new Date().toISOString(),
-    };
-    setMessages((m) => [...m, userMsg]);
+  if (!text || sending) return;
 
-    let acc = '';
-    await streamChat(
-      {
-        content: text,
-        conversation_id: activeConv || undefined,
-        assistant_id: assistantId || undefined,
-        model: selectedModel?.model_id,
-        provider_id: selectedModel?.provider_id,
-        mode: mode || 'general',
-      },
-      {
-        onStart: (info) => {
-          activeConv = info.conversation_id;
-          setConversationId(info.conversation_id);
-        },
-        onDelta: (delta) => {
-          acc += delta;
-          setStreamText(acc);
-        },
-        onDone: async () => {
-          setStreamText('');
-          if (activeConv) {
-            setConversationId(activeConv);
-            await loadMessages(activeConv);
-          }
-          refetchConvs();
-          // LifeOS: propose structured actions after the reply (non-blocking).
-          if (useAppStore.getState().settings.ai?.autoActions !== false) {
-            runAutoPropose(text);
-          }
-        },
-        onError: (msg) => {
-          setStreamText(`**${msg}**`);
-          setTimeout(() => setStreamText(''), 4000);
-        },
-        signal: abortRef.current.signal,
-      },
-    );
-    setSending(false);
-    abortRef.current = null;
+  setInput('');
+  setSending(true);
+  setStreamText('');
+  setProposals([]);
+
+  abortRef.current = new AbortController();
+
+  const userMsg: ChatMessage = {
+    id: `local-${Date.now()}`,
+    conversation_id: conversationId || '',
+    role: 'user',
+    content: text,
+    created_at: new Date().toISOString(),
   };
 
+  setMessages((current) => [...current, userMsg]);
+
+  try {
+    // آخر 20 رسالة فقط حتى لا نستهلك توكنات كثيرة
+    const history = [...messages, userMsg]
+      .slice(-20)
+      .map((message) => ({
+        role: message.role === 'assistant' ? 'assistant' : 'user',
+        content: message.content,
+      }));
+
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+
+      headers: {
+        'Content-Type': 'application/json',
+      },
+
+      body: JSON.stringify({
+        messages: history,
+      }),
+
+      signal: abortRef.current.signal,
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data?.error?.message ||
+        data?.error ||
+        'AI request failed'
+      );
+    }
+
+    const reply =
+      data?.choices?.[0]?.message?.content?.trim();
+
+    if (!reply) {
+      throw new Error('AI returned an empty response');
+    }
+
+    const assistantMsg: ChatMessage = {
+      id: `local-ai-${Date.now()}`,
+      conversation_id: conversationId || '',
+      role: 'assistant',
+      content: reply,
+      created_at: new Date().toISOString(),
+      model: 'DeepSeek',
+    };
+
+    setMessages((current) => [
+      ...current,
+      assistantMsg,
+    ]);
+
+  } catch (error) {
+
+    if (
+      error instanceof DOMException &&
+      error.name === 'AbortError'
+    ) {
+      return;
+    }
+
+    console.error('DeepSeek error:', error);
+
+    const errorMsg: ChatMessage = {
+      id: `local-error-${Date.now()}`,
+      conversation_id: conversationId || '',
+      role: 'assistant',
+      content:
+        'تعذر الاتصال بالمساعد الآن. حاول مرة أخرى.',
+      created_at: new Date().toISOString(),
+      model: 'عيش آمن',
+    };
+
+    setMessages((current) => [
+      ...current,
+      errorMsg,
+    ]);
+
+  } finally {
+    setSending(false);
+    abortRef.current = null;
+  }
+};
   const stop = () => {
     abortRef.current?.abort();
     setSending(false);
