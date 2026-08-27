@@ -23,6 +23,7 @@ interface Settings {
     modelParams?: Record<string, unknown>;
   };
   privacy: { maxPrivacy: boolean; blockCloud: boolean; analytics: boolean };
+  audio?: { uiSounds: boolean; ttsEnabled: boolean; speechRate: number; voiceLang: string };
   simpleMode: string;
   quietHours?: { enabled: boolean; start: string; end: string; sound: boolean; spoken: boolean; visual: boolean };
   sidebarVisible: string[];
@@ -48,6 +49,7 @@ const defaultSettings: Settings = {
   userName: '',
   ai: {},
   privacy: { maxPrivacy: false, blockCloud: false, analytics: false },
+  audio: { uiSounds: true, ttsEnabled: true, speechRate: 1, voiceLang: 'auto' },
   simpleMode: 'true',
   sidebarVisible: ['today', 'chat', 'safe', 'tasks', 'study', 'work', 'journal', 'goals', 'gratitude', 'memory', 'knowledge', 'audio', 'focus', 'insights', 'settings'],
 };

@@ -7,6 +7,10 @@ import { useAppStore } from '../lib/app-store';
 import type { CloudAiStatus } from '../lib/types';
 import Markdown from './Markdown';
 import { Spinner } from './ui';
+import VoiceInputButton from './VoiceInputButton';
+import SpeakButton from './SpeakButton';
+import { playNotify, playSend } from '../lib/sound';
+import { stopSpeaking } from '../lib/speech';
 
 type AiStatus = 'checking' | 'online' | 'ready' | 'offline' | 'blocked';
 
@@ -85,6 +89,8 @@ export default function AiAssistantPanel() {
     setStreamText('');
     setHistory((h) => [...h, { role: 'user', content: text }]);
     abortRef.current = new AbortController();
+    stopSpeaking();
+    playSend();
 
     let acc = '';
     try {
@@ -99,6 +105,7 @@ export default function AiAssistantPanel() {
             setStreamText('');
             const warning = info.partial ? `\n\n> ${info.warning || t('chat.partialWarning')}` : '';
             setHistory((h) => [...h, { role: 'assistant', content: `${acc}${warning}` }]);
+            playNotify();
           },
           onError: (msg) => {
             setStreamText('');
@@ -204,7 +211,7 @@ export default function AiAssistantPanel() {
               </div>
             )}
             {history.map((m, i) => (
-              <div key={i} className={m.role === 'user' ? 'flex justify-end' : 'flex justify-start'}>
+              <div key={i} className={m.role === 'user' ? 'flex justify-end' : 'flex flex-col justify-start'}>
                 <div
                   className={`max-w-[90%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
                     m.role === 'user'
@@ -214,6 +221,11 @@ export default function AiAssistantPanel() {
                 >
                   {m.role === 'assistant' ? <Markdown content={m.content} /> : <span className="whitespace-pre-line">{m.content}</span>}
                 </div>
+                {m.role === 'assistant' && (
+                  <div className="mt-1 flex justify-end">
+                    <SpeakButton text={m.content} className="!h-7 !w-7" />
+                  </div>
+                )}
               </div>
             ))}
             {sending && !streamText && (
@@ -239,6 +251,9 @@ export default function AiAssistantPanel() {
 
           {/* Input */}
           <div className="flex items-end gap-2 border-t border-line p-3">
+            <VoiceInputButton
+              onFinal={(text) => setInput((v) => (v ? `${v} ` : '') + text)}
+            />
             <textarea
               className="input max-h-28 min-h-[42px] flex-1 resize-y !py-2 text-sm"
               placeholder={t('ai.ask')}

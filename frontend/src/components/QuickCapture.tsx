@@ -3,6 +3,7 @@ import { BookOpen, Check, Heart, ListTodo } from 'lucide-react';
 import { api } from '../lib/api';
 import { useT } from '../lib/i18n';
 import { Button, Field, Modal, Select, Spinner } from './ui';
+import VoiceInputButton from './VoiceInputButton';
 
 type CaptureType = 'task' | 'journal' | 'gratitude';
 
@@ -102,6 +103,10 @@ export default function QuickCapture({ open, onClose }: { open: boolean; onClose
               if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') save();
             }}
           />
+          <div className="mt-2 flex items-center gap-2">
+            <VoiceInputButton onFinal={(txt) => setText((v) => (v ? `${v}\n` : '') + txt)} />
+            <span className="text-[11px] text-ink-faint">{t('chat.mic')}</span>
+          </div>
         </Field>
 
         {type === 'task' && (

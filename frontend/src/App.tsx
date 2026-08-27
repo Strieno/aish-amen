@@ -8,10 +8,20 @@ import AiAssistantPanel from './components/AiAssistantPanel';
 import SmartContextPanel from './components/SmartContextPanel';
 import QuickCapture from './components/QuickCapture';
 import AmbientBackground from './components/AmbientBackground';
+import { initUiSounds, setUiSoundsEnabled, quietHoursActive } from './lib/sound';
+import { useAppStore } from './lib/app-store';
 
 export default function App() {
   const [smartOpen, setSmartOpen] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
+  const uiSounds = useAppStore((s) => s.settings.audio?.uiSounds);
+  const quietHours = useAppStore((s) => s.settings.quietHours);
+
+  useEffect(() => initUiSounds(), []);
+
+  useEffect(() => {
+    setUiSoundsEnabled(uiSounds !== false && !quietHoursActive(quietHours));
+  }, [uiSounds, quietHours]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {

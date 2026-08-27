@@ -9,7 +9,6 @@ import {
   Import,
   Leaf,
   MessageSquare,
-  Mic,
   MoreVertical,
   Pencil,
   Pin,
@@ -31,6 +30,10 @@ import Markdown from '../components/Markdown';
 import { Badge, Button, EmptyState, Modal, Select, Spinner } from '../components/ui';
 import EntityChip from '../components/EntityChip';
 import AiActionCards from '../components/AiActionCards';
+import VoiceInputButton from '../components/VoiceInputButton';
+import SpeakButton from '../components/SpeakButton';
+import { playNotify, playSend } from '../lib/sound';
+import { stopSpeaking } from '../lib/speech';
 
 function friendlyModelName(model: AiModel, lang: string): string {
   const explicit = model.display_name?.trim();
@@ -252,6 +255,8 @@ export default function ChatPage() {
     setStreamText('');
     setProposals([]);
     abortRef.current = new AbortController();
+    stopSpeaking();
+    playSend();
     let activeConv = conversationId;
 
     const userMsg: ChatMessage = {
@@ -287,6 +292,7 @@ export default function ChatPage() {
           onDone: async (info) => {
             setStreamText('');
             setSendError(info.partial ? (info.warning || t('chat.partialWarning')) : '');
+            playNotify();
             if (info.contextUsed && typeof info.contextUsed === 'object') {
               const used = info.contextUsed as ContextUsed & { items?: ContextItem[] };
               setLastUsedCtx(used.items || []);
@@ -716,9 +722,7 @@ export default function ChatPage() {
             </div>
           )}
           <div className="flex items-end gap-2">
-            <button className="btn-icon" title={t('chat.micUnavailable')} aria-label={t('chat.micUnavailable')} onClick={() => alert(t('chat.micUnavailable'))}>
-              <Mic className="h-5 w-5" />
-            </button>
+            <VoiceInputButton onFinal={(text) => setInput((v) => (v ? `${v} ` : '') + text)} />
             <textarea
               className="input max-h-40 min-h-[52px] flex-1 resize-y"
               placeholder={t('chat.placeholder')}
@@ -1135,6 +1139,7 @@ function MessageBubble({
           </span>
           <span className="text-xs font-bold text-ink-faint">{msg.model || 'عِش آمن'}</span>
           <div className="ms-auto flex items-center gap-0.5 md:invisible md:group-hover:visible md:group-focus-within:visible">
+            <SpeakButton text={msg.content} className="!h-7 !w-7" />
             {canInspect && (
               <button onClick={onInspect} className="btn-icon !h-7 !w-7" title={t('chat.whyAITold')}>
                 <Eye className="h-3.5 w-3.5" />

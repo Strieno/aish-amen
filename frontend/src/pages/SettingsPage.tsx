@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Bot,
   Brain,
@@ -9,16 +9,19 @@ import {
   FlaskConical,
   Languages,
   LogOut,
+  Mic,
   Moon,
   Palette,
   Plus,
   Save,
   Shield,
+  Square,
   Sun,
   TestTube,
   Trash2,
   UploadCloud,
   User,
+  Volume2,
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { useApi } from '../lib/useApi';
@@ -30,8 +33,10 @@ import { useAuth } from '../cloud/AuthProvider';
 import { useCloudStore } from '../cloud/store';
 import { inspectLegacySqlite, migrateLegacySqlite } from '../cloud/migration';
 import { cloudConfigured } from '../cloud/client';
+import { playClick, playError, playMicOff, playMicOn, playSuccess } from '../lib/sound';
+import { speak, startRecognition, sttSupported, stopSpeaking, type RecognitionController } from '../lib/speech';
 
-const SECTIONS = ['account', 'general', 'appearance', 'language', 'ai', 'privacy', 'data', 'backups', 'developer'];
+const SECTIONS = ['account', 'general', 'voice', 'appearance', 'language', 'ai', 'privacy', 'data', 'backups', 'developer'];
 
 export default function SettingsPage() {
   const t = useT();
@@ -50,6 +55,7 @@ export default function SettingsPage() {
 
       {section === 'account' && <AccountTab />}
       {section === 'general' && <GeneralTab />}
+      {section === 'voice' && <VoiceTab />}
       {section === 'appearance' && <AppearanceTab />}
       {section === 'language' && <LanguageTab />}
       {section === 'ai' && <AiTab />}
@@ -133,6 +139,154 @@ function GeneralTab() {
         </Field>
       </div>
     </SectionCard>
+  );
+}
+
+function VoiceTab() {
+  const t = useT();
+  const lang = useAppStore((s) => s.settings.language);
+  const settings = useAppStore((s) => s.settings);
+  const update = useAppStore((s) => s.updateSettings);
+  const audio = settings.audio || { uiSounds: true, ttsEnabled: true, speechRate: 1, voiceLang: 'auto' };
+  const [recording, setRecording] = useState(false);
+  const [heard, setHeard] = useState('');
+  const [interim, setInterim] = useState('');
+  const recRef = useRef<RecognitionController | null>(null);
+
+  useEffect(
+    () => () => {
+      recRef.current?.stop();
+      stopSpeaking();
+    },
+    [],
+  );
+
+  const patchAudio = (p: Partial<typeof audio>) => update({ audio: { ...audio, ...p } });
+
+  const toggleRecord = () => {
+    if (recRef.current) {
+      recRef.current.stop();
+      recRef.current = null;
+      setRecording(false);
+      setInterim('');
+      playMicOff();
+      return;
+    }
+    playMicOn();
+    const rec = startRecognition({
+      lang: audio.voiceLang !== 'auto' ? audio.voiceLang : lang === 'en' ? 'en-US' : 'ar-SA',
+      onInterim: setInterim,
+      onFinal: (text) => setHeard((v) => (v ? `${v} ${text}` : text)),
+      onEnd: () => {
+        recRef.current = null;
+        setRecording(false);
+        setInterim('');
+      },
+      onError: () => {
+        recRef.current = null;
+        setRecording(false);
+        setInterim('');
+      },
+    });
+    if (rec) {
+      recRef.current = rec;
+      setRecording(true);
+    }
+  };
+
+  const speakTest = () => {
+    speak({
+      text: lang === 'en' ? 'Aish Aman — your safe living companion.' : 'عِش آمن — خطوة صغيرة واضحة الآن خير من خطة كاملة مربكة.',
+      lang: audio.voiceLang !== 'auto' ? audio.voiceLang : lang === 'en' ? 'en-US' : 'ar-SA',
+      rate: audio.speechRate,
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      <SectionCard title={t('settings.sound')} icon={Volume2}>
+        <div className="flex items-center justify-between rounded-xl bg-elevated p-3">
+          <div>
+            <p className="text-sm font-bold text-ink">{t('settings.uiSounds')}</p>
+            <p className="text-xs text-ink-faint">{t('settings.uiSoundsHint')}</p>
+          </div>
+          <Toggle checked={audio.uiSounds} onChange={(v) => patchAudio({ uiSounds: v })} label={t('settings.uiSounds')} />
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button variant="ghost" className="!px-3 !py-1.5 text-xs" onClick={() => playClick()}>{t('settings.try')}: {t('settings.sound')}</Button>
+          <Button variant="ghost" className="!px-3 !py-1.5 text-xs" onClick={() => playSuccess()}>{t('settings.try')}: ✓</Button>
+          <Button variant="ghost" className="!px-3 !py-1.5 text-xs" onClick={() => playError()}>{t('settings.try')}: ✕</Button>
+        </div>
+      </SectionCard>
+
+      <SectionCard title={t('settings.ttsEnabled')} icon={Volume2}>
+        <div className="flex items-center justify-between rounded-xl bg-elevated p-3">
+          <div>
+            <p className="text-sm font-bold text-ink">{t('settings.ttsEnabled')}</p>
+            <p className="text-xs text-ink-faint">{t('settings.ttsHint')}</p>
+          </div>
+          <Toggle checked={audio.ttsEnabled} onChange={(v) => patchAudio({ ttsEnabled: v })} label={t('settings.ttsEnabled')} />
+        </div>
+        <div className="mt-4 space-y-3">
+          <Field label={`${t('settings.speechRate')}: ${audio.speechRate.toFixed(1)}x`}>
+            <input
+              type="range"
+              min="0.6"
+              max="1.8"
+              step="0.1"
+              className="w-full accent-[rgb(var(--brand))]"
+              value={audio.speechRate}
+              onChange={(e) => patchAudio({ speechRate: Number(e.target.value) })}
+              aria-label={t('settings.speechRate')}
+            />
+          </Field>
+          <Field label={t('settings.voiceLang')}>
+            <Select value={audio.voiceLang} onChange={(v) => patchAudio({ voiceLang: v })}>
+              <option value="auto">{t('settings.voiceAuto')}</option>
+              <option value="ar-SA">العربية (ar-SA)</option>
+              <option value="en-US">English (en-US)</option>
+            </Select>
+          </Field>
+          <div className="flex gap-2">
+            <Button variant="ghost" className="!px-3 !py-1.5 text-xs" onClick={speakTest}>
+              <Volume2 className="h-3.5 w-3.5" /> {t('settings.ttsTest')}
+            </Button>
+            <Button variant="ghost" className="!px-3 !py-1.5 text-xs" onClick={() => stopSpeaking()}>
+              <Square className="h-3.5 w-3.5" /> {t('settings.stopSpeech')}
+            </Button>
+          </div>
+        </div>
+      </SectionCard>
+
+      <SectionCard title={t('settings.sttEnabled')} icon={Mic}>
+        {sttSupported() ? (
+          <div className="space-y-3">
+            <p className="text-xs text-ink-faint">{t('settings.sttHint')}</p>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                data-no-sound
+                onClick={toggleRecord}
+                className={`${recording ? 'btn-primary' : 'btn-ghost'} relative`}
+                aria-pressed={recording}
+              >
+                {recording && <span className="absolute inline-flex h-full w-full animate-ping rounded-2xl bg-danger/40" aria-hidden="true" />}
+                <Mic className="relative h-4 w-4" />
+                {recording ? t('chat.listening') : t('settings.sttTest')}
+              </button>
+              {interim && <span className="text-sm italic text-ink-soft">«{interim}»</span>}
+            </div>
+            {heard && (
+              <p className="rounded-xl bg-brand-soft px-3 py-2 text-sm text-brand-dark">
+                <span className="font-bold">{t('settings.sttResult')}</span> {heard}
+              </p>
+            )}
+          </div>
+        ) : (
+          <p className="rounded-xl border border-warn-border bg-warn-bg px-3 py-2 text-sm text-warn">{t('settings.sttUnsupported')}</p>
+        )}
+      </SectionCard>
+    </div>
   );
 }
 

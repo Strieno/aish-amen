@@ -9,6 +9,7 @@ import type { TodayData } from '../lib/types';
 import { Button, Card, EmptyState, Spinner } from '../components/ui';
 import AiResultBox from '../components/AiResultBox';
 import { SafeHomeScene, CalmEmptyScene } from '../components/SceneArt';
+import SpeakButton from '../components/SpeakButton';
 import { useAiAction } from '../lib/useAiAction';
 import { entityIcon, entityRoute } from '../lib/entity-utils';
 
@@ -234,6 +235,11 @@ export default function TodayPage() {
         <div className="relative mb-2 flex items-center gap-2 text-brand-dark">
           <Sparkles className="h-4 w-4 animate-twinkle" />
           <h2 className="text-sm font-bold">{t('today.aiSuggestion')}</h2>
+          {suggestion && (
+            <span className="ms-auto">
+              <SpeakButton text={suggestion} className="!h-7 !w-7" />
+            </span>
+          )}
         </div>
         {suggesting && !suggestion ? (
           <p className="flex items-center gap-2 text-sm text-ink-faint">
