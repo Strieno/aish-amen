@@ -50,6 +50,12 @@ function env(name: string) {
   return String(process.env[name] || '').trim();
 }
 
+function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs = 5000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...init, signal: controller.signal }).finally(() => clearTimeout(timer));
+}
+
 export function deepSeekConfigured() {
   return Boolean(env('DEEPSEEK_API_KEY'));
 }
@@ -70,7 +76,7 @@ export async function authContext(req: any): Promise<SbContext | null> {
   const token = bearerFromRequest(req);
   const { url, key } = supabaseEnv();
   if (!token || !url || !key) return null;
-  const response = await fetch(`${url}/auth/v1/user`, {
+  const response = await fetchWithTimeout(`${url}/auth/v1/user`, {
     headers: { apikey: key, Authorization: `Bearer ${token}` },
   });
   if (!response.ok) return null;
@@ -102,38 +108,38 @@ function qs(params: Record<string, string | number | boolean | undefined | null>
 
 export async function sbSelect(ctx: SbContext, table: string, params: Record<string, any> = {}) {
   const query = qs({ select: '*', ...params });
-  const response = await fetch(`${ctx.url}/rest/v1/${table}?${query}`, { headers: sbHeaders(ctx) });
+  const response = await fetchWithTimeout(`${ctx.url}/rest/v1/${table}?${query}`, { headers: sbHeaders(ctx) }, 4500);
   if (!response.ok) throw new Error(`Supabase ${table}: ${response.status} ${await response.text()}`);
   return await response.json() as any[];
 }
 
 export async function sbInsert(ctx: SbContext, table: string, row: Record<string, any>) {
-  const response = await fetch(`${ctx.url}/rest/v1/${table}`, {
+  const response = await fetchWithTimeout(`${ctx.url}/rest/v1/${table}`, {
     method: 'POST',
     headers: sbHeaders(ctx, { Prefer: 'return=representation' }),
     body: JSON.stringify({ ...row, user_id: ctx.userId }),
-  });
+  }, 5000);
   if (!response.ok) throw new Error(`Supabase insert ${table}: ${response.status} ${await response.text()}`);
   const data = await response.json() as any[];
   return data[0] || null;
 }
 
 export async function sbUpdate(ctx: SbContext, table: string, id: string, patch: Record<string, any>) {
-  const response = await fetch(`${ctx.url}/rest/v1/${table}?id=eq.${encodeURIComponent(id)}`, {
+  const response = await fetchWithTimeout(`${ctx.url}/rest/v1/${table}?id=eq.${encodeURIComponent(id)}`, {
     method: 'PATCH',
     headers: sbHeaders(ctx, { Prefer: 'return=representation' }),
     body: JSON.stringify(patch),
-  });
+  }, 5000);
   if (!response.ok) throw new Error(`Supabase update ${table}: ${response.status} ${await response.text()}`);
   const data = await response.json() as any[];
   return data[0] || null;
 }
 
 export async function sbDelete(ctx: SbContext, table: string, id: string) {
-  const response = await fetch(`${ctx.url}/rest/v1/${table}?id=eq.${encodeURIComponent(id)}`, {
+  const response = await fetchWithTimeout(`${ctx.url}/rest/v1/${table}?id=eq.${encodeURIComponent(id)}`, {
     method: 'DELETE',
     headers: sbHeaders(ctx),
-  });
+  }, 5000);
   if (!response.ok) throw new Error(`Supabase delete ${table}: ${response.status} ${await response.text()}`);
   return true;
 }
@@ -453,7 +459,7 @@ export async function buildCloudContext(ctx: SbContext, input: {
 
   return {
     settings,
-    text: sections.join('\n\n').slice(0, 24000),
+    text: sections.join('\n\n').slice(0, 12000),
     contextUsed,
     data,
     today,
@@ -478,7 +484,7 @@ export function selectedModel(inputModel?: string) {
 export async function deepSeek(messages: any[], options: { model?: string; stream?: boolean; maxTokens?: number; temperature?: number } = {}) {
   const apiKey = env('DEEPSEEK_API_KEY');
   if (!apiKey) throw new Error('DEEPSEEK_API_KEY is not configured');
-  const response = await fetch(`${DEEPSEEK_BASE}/chat/completions`, {
+  const response = await fetchWithTimeout(`${DEEPSEEK_BASE}/chat/completions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -489,9 +495,9 @@ export async function deepSeek(messages: any[], options: { model?: string; strea
       messages,
       stream: Boolean(options.stream),
       temperature: options.temperature ?? 0.55,
-      max_tokens: options.maxTokens ?? 1800,
+      max_tokens: options.maxTokens ?? 900,
     }),
-  });
+  }, options.stream ? 45000 : 35000);
   if (!response.ok) {
     const text = await response.text();
     throw new Error(`DeepSeek ${response.status}: ${text.slice(0, 500)}`);

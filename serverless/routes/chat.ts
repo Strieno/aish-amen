@@ -15,7 +15,7 @@ export default async function handler(req: any, res: any) {
 
 # سياق عيش آمن
 ${context.text}`;
-    const result = await generateText([{ role: 'system', content: system }, ...incoming.slice(-20)], { model: selectedModel(req.body?.model), maxTokens: 2200 });
+    const result = await generateText([{ role: 'system', content: system }, ...incoming.slice(-20)], { model: selectedModel(req.body?.model), maxTokens: 900 });
     return res.status(200).json({ id: `aish-${Date.now()}`, object: 'chat.completion', model: result.model, choices: [{ index: 0, message: { role: 'assistant', content: result.content }, finish_reason: 'stop' }] });
   } catch (error) {
     return res.status(500).json({ error: error instanceof Error ? error.message : 'AI request failed' });

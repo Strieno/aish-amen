@@ -8,7 +8,7 @@ export default async function handler(req: any, res: any) {
   if (String(req.query?.id || '') !== DEEPSEEK_PROVIDER_ID) return res.status(404).json({ ok: false, message: 'Provider not available in cloud mode' });
   if (!deepSeekConfigured()) return res.json({ ok: false, message: 'DEEPSEEK_API_KEY غير موجود في Vercel' });
   try {
-    const result = await generateText([{ role: 'user', content: 'Reply only with OK' }], { maxTokens: 10, temperature: 0 });
+    const result = await generateText([{ role: 'user', content: 'Reply only with OK' }], { maxTokens: 4, temperature: 0 });
     return res.json({ ok: Boolean(result.content), message: 'DeepSeek Cloud متصل', modelCount: 2 });
   } catch (error) {
     return res.json({ ok: false, message: error instanceof Error ? error.message : 'Connection failed' });

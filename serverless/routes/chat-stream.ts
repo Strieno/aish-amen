@@ -1,7 +1,6 @@
 import {
   DEEPSEEK_PROVIDER_ID,
   authContext,
-  autoExtractMemory,
   assistantPrompt,
   buildCloudContext,
   conversationHistory,
@@ -78,7 +77,7 @@ export default async function handler(req: any, res: any) {
     sendSse(res, 'start', { conversation_id: conversation.id, model, provider: DEEPSEEK_PROVIDER_ID });
 
     const started = Date.now();
-    const deepResponse = await deepSeek(messages, { model, stream: true, maxTokens: 2600 });
+    const deepResponse = await deepSeek(messages, { model, stream: true, maxTokens: 1100 });
     let full = '';
     await proxyDeepSeekStream(deepResponse, (delta) => {
       full += delta;
@@ -93,9 +92,8 @@ export default async function handler(req: any, res: any) {
     });
     await sbUpdate(ctx, 'conversations', conversation.id, { updated_at: new Date().toISOString() });
 
-    if (!regenerate) {
-      try { await autoExtractMemory(ctx, context.settings, content, full); } catch { /* optional */ }
-    }
+    // Keep the interactive request fast on Vercel Hobby.
+    // Automatic memory extraction should run as a separate follow-up action, not block the chat response.
 
     sendSse(res, 'done', {
       content: full, partial: false, model, provider: DEEPSEEK_PROVIDER_ID,
