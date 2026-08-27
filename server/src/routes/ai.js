@@ -1008,7 +1008,7 @@ function findTtsProvider(preferredId) {
     if (provider && typeof provider.tts === 'function') return provider;
   }
   for (const info of listProviders()) {
-    if (info.type !== 'openai-compatible') continue;
+    if (info.type !== 'openai-compatible' || !info.has_api_key) continue;
     const provider = getProvider(info.id);
     if (provider && typeof provider.tts === 'function') return provider;
   }
@@ -1047,7 +1047,7 @@ r.post('/ai/tts', async (req, res) => {
         // engine === 'auto': fall through to the free Edge voices.
       }
     } else if (engine === 'openai') {
-      return res.status(400).json({ error: 'no tts-capable provider' });
+      return res.status(400).json({ error: 'أضف مزود OpenAI مع مفتاح API من الإعدادات لتشغيل صوت Alloy.' });
     }
   }
 

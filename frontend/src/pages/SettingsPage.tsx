@@ -167,6 +167,7 @@ function VoiceTab() {
   const [heard, setHeard] = useState('');
   const [interim, setInterim] = useState('');
   const [lastEngine, setLastEngine] = useState('');
+  const [speechError, setSpeechError] = useState('');
   const [speaking, setSpeaking] = useState(false);
   const recRef = useRef<RecognitionController | null>(null);
 
@@ -215,12 +216,14 @@ function VoiceTab() {
     stopSpeaking();
     setSpeaking(true);
     setLastEngine('');
+    setSpeechError('');
     const result = await speak({
       text: lang === 'en' ? 'Aish Aman — your safe living companion.' : 'عِش آمن — خطوة صغيرة واضحة الآن خير من خطة كاملة مربكة.',
       lang: audio.voiceLang !== 'auto' ? audio.voiceLang : lang === 'en' ? 'en-US' : 'ar-SA',
       rate: audio.speechRate,
     });
-    setLastEngine(result.engine);
+    if (result.ok) setLastEngine(result.engine);
+    else if (result.error !== 'cancelled') setSpeechError(result.error || t('settings.ttsTestError'));
     setSpeaking(false);
   };
 
@@ -290,15 +293,17 @@ function VoiceTab() {
               ))}
             </Select>
           </Field>
-          <Field label={t('settings.ttsVoiceEdge')}>
-            <Select value={audio.ttsVoiceEdge || 'auto'} onChange={(v) => patchAudio({ ttsVoiceEdge: v })}>
-              {EDGE_VOICES.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.label}
-                </option>
-              ))}
-            </Select>
-          </Field>
+          {audio.ttsEngine !== 'server' && (
+            <Field label={t('settings.ttsVoiceEdge')}>
+              <Select value={audio.ttsVoiceEdge || 'auto'} onChange={(v) => patchAudio({ ttsVoiceEdge: v })}>
+                {EDGE_VOICES.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          )}
           {settings.privacy?.maxPrivacy && (
             <p className="rounded-xl border border-warn-border bg-warn-bg px-3 py-2 text-xs text-warn">{t('settings.ttsPrivacyBlocked')}</p>
           )}
@@ -326,7 +331,7 @@ function VoiceTab() {
               {speaking && <Spinner className="h-3.5 w-3.5" />}
               {!speaking && <Volume2 className="h-3.5 w-3.5" />} {t('settings.ttsTest')}
             </Button>
-            <Button variant="ghost" className="!px-3 !py-1.5 text-xs" onClick={() => stopSpeaking()}>
+            <Button variant="ghost" className="!px-3 !py-1.5 text-xs" onClick={() => { stopSpeaking(); setSpeaking(false); }}>
               <Square className="h-3.5 w-3.5" /> {t('settings.stopSpeech')}
             </Button>
             {lastEngine && (
@@ -335,6 +340,7 @@ function VoiceTab() {
               </span>
             )}
           </div>
+          {speechError && <p className="rounded-xl border border-danger-border bg-danger-bg px-3 py-2 text-xs text-danger">{speechError}</p>}
         </div>
       </SectionCard>
 
