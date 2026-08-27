@@ -239,6 +239,88 @@ export const DDL = [
     title TEXT NOT NULL,
     notes TEXT DEFAULT '',
     done INTEGER DEFAULT 0,
+    mastery REAL DEFAULT 0,
+    difficulty TEXT DEFAULT 'medium',
+    last_reviewed TEXT,
+    review_count INTEGER DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS study_sessions (
+    id TEXT PRIMARY KEY,
+    course_id TEXT,
+    topic_id TEXT,
+    started_at TEXT NOT NULL,
+    ended_at TEXT,
+    minutes INTEGER DEFAULT 0,
+    type TEXT DEFAULT 'study',
+    difficulty_felt TEXT,
+    understanding INTEGER,
+    notes TEXT DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS study_notes (
+    id TEXT PRIMARY KEY,
+    course_id TEXT,
+    topic_id TEXT,
+    title TEXT NOT NULL,
+    content TEXT DEFAULT '',
+    tags TEXT DEFAULT '[]',
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS flashcards (
+    id TEXT PRIMARY KEY,
+    course_id TEXT,
+    topic_id TEXT,
+    front TEXT NOT NULL,
+    back TEXT NOT NULL,
+    difficulty TEXT DEFAULT 'medium',
+    ease REAL DEFAULT 2.5,
+    interval_days INTEGER DEFAULT 0,
+    reps INTEGER DEFAULT 0,
+    lapses INTEGER DEFAULT 0,
+    due_date TEXT,
+    last_reviewed TEXT,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS quiz_attempts (
+    id TEXT PRIMARY KEY,
+    course_id TEXT,
+    topic_id TEXT,
+    question TEXT NOT NULL,
+    answer TEXT,
+    correct INTEGER,
+    confidence INTEGER DEFAULT 0,
+    difficulty TEXT DEFAULT 'medium',
+    source TEXT DEFAULT 'practice',
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS mistakes (
+    id TEXT PRIMARY KEY,
+    course_id TEXT,
+    topic_id TEXT,
+    category TEXT DEFAULT 'concept',
+    question TEXT NOT NULL,
+    user_answer TEXT,
+    correct_answer TEXT,
+    times INTEGER DEFAULT 1,
+    last_seen TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    resolved INTEGER DEFAULT 0
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS study_plan_items (
+    id TEXT PRIMARY KEY,
+    date TEXT NOT NULL,
+    course_id TEXT,
+    topic_id TEXT,
+    minutes INTEGER DEFAULT 30,
+    done INTEGER DEFAULT 0,
+    reason TEXT DEFAULT '',
     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
   )`,
 

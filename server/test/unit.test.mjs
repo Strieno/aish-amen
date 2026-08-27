@@ -31,6 +31,7 @@ const routerMod = await import('../src/services/context/router.js');
 const compressorMod = await import('../src/services/context/compressor.js');
 const scorerMod = await import('../src/services/context/scorer.js');
 const contextBuilderMod = await import('../src/services/context-builder.js');
+const studyMod = await import('../src/services/study-engine.js');
 
 before(() => {
   dbMod.openDb();
@@ -416,4 +417,64 @@ test('ACE test 7: prompt injection inside journal is treated as data only', () =
   assert.ok(text.includes('<<< سياق المستخدم'), 'data block must be delimited');
   assert.ok(!text.includes('```'), 'triple backticks must be neutralized in serialized context');
   assert.ok(text.startsWith('<<< سياق المستخدم'), 'packet serialization must start with the data-only marker');
+});
+
+/* ================= Study OS ================= */
+
+test('Study OS: mastery improves with correct attempts and drops with mistakes', () => {
+  dbMod.run('INSERT INTO courses(id, name) VALUES (?,?)', 'course-os', 'اختبار المنطق');
+  dbMod.run('INSERT INTO course_topics(id, course_id, title, difficulty) VALUES (?,?,?,?)', 'topic-os', 'course-os', 'قواعد الاستدلال', 'medium');
+
+  const m0 = studyMod.refreshTopicMastery('topic-os');
+  assert.ok(m0 >= 0 && m0 <= 100, 'initial mastery in range');
+
+  // A correct, confident attempt raises mastery.
+  for (let i = 0; i < 4; i += 1) {
+    dbMod.run(
+      'INSERT INTO quiz_attempts(id, course_id, topic_id, question, correct, confidence, difficulty) VALUES (?,?,?,?,?,?,?)',
+      `qa-${i}`, 'course-os', 'topic-os', `سؤال ${i}`, 1, 4, 'medium',
+    );
+  }
+  const afterGood = studyMod.refreshTopicMastery('topic-os');
+  assert.ok(afterGood > m0, `mastery should rise after correct attempts (${m0} → ${afterGood})`);
+
+  // Repeated mistakes drag it down.
+  for (let i = 0; i < 3; i += 1) {
+    studyMod.recordMistake({ courseId: 'course-os', topicId: 'topic-os', category: 'logic', question: 'خلط بين الشرطية والعكس', userAnswer: 'x', correctAnswer: 'y' });
+  }
+  const afterBad = studyMod.refreshTopicMastery('topic-os');
+  assert.ok(afterBad <= afterGood, 'mastery should not rise after mistakes');
+});
+
+test('Study OS: SM-2 spaced repetition schedules reviews', () => {
+  dbMod.run(
+    'INSERT INTO flashcards(id, course_id, topic_id, front, back) VALUES (?,?,?,?,?)',
+    'fc-os', 'course-os', 'topic-os', 'ما هي modus ponens؟', 'أسلوب استدلال شرطي صحيح',
+  );
+  const again = studyMod.reviewFlashcard('fc-os', 'again');
+  assert.equal(again.reps, 0, 'again resets reps');
+  assert.equal(again.lapses, 1, 'again counts a lapse');
+  assert.equal(again.interval_days, 1, 'again → next review tomorrow');
+
+  const good = studyMod.reviewFlashcard('fc-os', 'good');
+  assert.equal(good.reps, 1, 'good increments reps');
+  assert.equal(good.interval_days, 1, 'first good → 1 day');
+
+  const good2 = studyMod.reviewFlashcard('fc-os', 'good');
+  assert.equal(good2.reps, 2, 'second good increments reps');
+  assert.equal(good2.interval_days, 6, 'second good → 6 days');
+
+  const easy = studyMod.reviewFlashcard('fc-os', 'easy');
+  assert.ok(easy.interval_days >= 6, 'easy lengthens the interval');
+});
+
+test('Study OS: recommendations are explainable and exam-aware', () => {
+  dbMod.run('INSERT INTO exams(id, course_id, title, exam_type, exam_date) VALUES (?,?,?,?,?)', 'exam-os', 'course-os', 'منتصف المنطق', 'MIDTERM', new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10));
+  const recs = studyMod.recommendNow({ limit: 5 });
+  const hit = recs.find((r) => r.topicId === 'topic-os');
+  assert.ok(hit, 'the weak topic should be recommended');
+  assert.ok(hit.reasons.length > 0, 'recommendation must carry reasons');
+  assert.ok(hit.reasons.some((reason) => /اختبار|يوم/.test(reason)), 'exam proximity appears in reasons');
+  const momentum = studyMod.academicMomentum();
+  assert.ok(typeof momentum.level === 'string' && momentum.level.length > 0);
 });

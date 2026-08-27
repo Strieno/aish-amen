@@ -85,6 +85,10 @@ export function migrate(d) {
   ensureColumn(d, 'memories', 'source_id', 'TEXT');
   ensureColumn(d, 'conversations', 'context', 'TEXT');
   ensureColumn(d, 'conversations', 'mode', 'TEXT');
+  ensureColumn(d, 'course_topics', 'mastery', 'REAL DEFAULT 0');
+  ensureColumn(d, 'course_topics', 'difficulty', 'TEXT DEFAULT \'medium\'');
+  ensureColumn(d, 'course_topics', 'last_reviewed', 'TEXT');
+  ensureColumn(d, 'course_topics', 'review_count', 'INTEGER DEFAULT 0');
   d.exec('CREATE INDEX IF NOT EXISTS idx_memories_source ON memories(source_type, source_id)');
   d.exec(`INSERT INTO settings(key, value) VALUES ('schema_version', '${SCHEMA_VERSION}')
           ON CONFLICT(key) DO UPDATE SET value = excluded.value`);

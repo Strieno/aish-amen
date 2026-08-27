@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { all, get, run } from '../db/index.js';
 import { uid, nowIso, parseJson } from '../lib/util.js';
 import { emitDomainEvent, EVENT_TYPES } from '../services/events.js';
+import * as studyEngine from '../services/study-engine.js';
 
 const r = Router();
 
@@ -13,10 +14,25 @@ r.get('/courses', (_req, res) => {
       `SELECT c.*,
         (SELECT COUNT(*) FROM course_topics t WHERE t.course_id = c.id) AS topics_count,
         (SELECT COUNT(*) FROM course_topics t WHERE t.course_id = c.id AND t.done = 1) AS topics_done,
+        (SELECT COUNT(*) FROM course_topics t WHERE t.course_id = c.id AND t.mastery >= 65) AS mastered_count,
+        (SELECT COUNT(*) FROM course_topics t WHERE t.course_id = c.id AND t.mastery > 0 AND t.mastery < 45) AS weak_count,
+        (SELECT COALESCE(ROUND(AVG(t.mastery)),0) FROM course_topics t WHERE t.course_id = c.id) AS mastery_avg,
+        (SELECT COALESCE(SUM(s.minutes),0) FROM study_sessions s WHERE s.course_id = c.id) AS study_hours,
+        (SELECT MAX(s.started_at) FROM study_sessions s WHERE s.course_id = c.id) AS last_session,
         (SELECT COUNT(*) FROM tasks tk WHERE tk.course_id = c.id AND tk.status NOT IN ('done','cancelled')) AS open_tasks,
-        (SELECT COUNT(*) FROM exams e WHERE e.course_id = c.id AND e.exam_date >= date('now')) AS upcoming_exams
+        (SELECT COUNT(*) FROM exams e WHERE e.course_id = c.id AND e.exam_date >= date('now')) AS upcoming_exams,
+        (SELECT e.title FROM exams e WHERE e.course_id = c.id AND e.exam_date >= date('now') ORDER BY e.exam_date LIMIT 1) AS next_exam,
+        (SELECT e.exam_date FROM exams e WHERE e.course_id = c.id AND e.exam_date >= date('now') ORDER BY e.exam_date LIMIT 1) AS next_exam_date
        FROM courses c ORDER BY c.created_at DESC`,
-    ),
+    ).map((course) => {
+      const mastery = Number(course.mastery_avg || 0);
+      return {
+        ...course,
+        mastery_avg: mastery,
+        mastery_state: studyEngine.topicMasteryState(mastery),
+        study_hours: Math.round((Number(course.study_hours) || 0) / 60 * 10) / 10,
+      };
+    }),
   );
 });
 
@@ -66,8 +82,13 @@ r.get('/courses/:id', (req, res) => {
   if (!course) return res.status(404).json({ error: 'not found' });
   res.json({
     ...course,
-    topics: all('SELECT * FROM course_topics WHERE course_id = ? ORDER BY created_at', req.params.id),
+    mastery_avg: studyEngine.courseMastery(req.params.id),
+    topics: all('SELECT * FROM course_topics WHERE course_id = ? ORDER BY created_at', req.params.id).map((t) => ({ ...t, mastery: Math.round(t.mastery || 0) })),
     exams: all('SELECT * FROM exams WHERE course_id = ? ORDER BY exam_date', req.params.id),
+    notes: all('SELECT * FROM study_notes WHERE course_id = ? ORDER BY updated_at DESC LIMIT 30', req.params.id).map((n) => ({ ...n, tags: parseJson(n.tags, []) })),
+    flashcards: all('SELECT * FROM flashcards WHERE course_id = ? ORDER BY created_at DESC LIMIT 200', req.params.id),
+    sessions: all('SELECT * FROM study_sessions WHERE course_id = ? ORDER BY started_at DESC LIMIT 20', req.params.id),
+    mistakes: all('SELECT * FROM mistakes WHERE course_id = ? AND resolved = 0 ORDER BY times DESC LIMIT 20', req.params.id),
     tasks: all(
       'SELECT id, title, status, priority, due_date, energy FROM tasks WHERE course_id = ? ORDER BY created_at DESC',
       req.params.id,
@@ -78,12 +99,35 @@ r.get('/courses/:id', (req, res) => {
 r.post('/courses/:id/topics', (req, res) => {
   const b = req.body || {};
   const id = uid('topic-');
-  run('INSERT INTO course_topics(id, course_id, title, notes, done) VALUES (?,?,?,?,?)', id, req.params.id, b.title || 'موضوع', b.notes || '', b.done ? 1 : 0);
+  run(
+    'INSERT INTO course_topics(id, course_id, title, notes, done, difficulty, mastery) VALUES (?,?,?,?,?,?,?)',
+    id,
+    req.params.id,
+    b.title || 'موضوع',
+    b.notes || '',
+    b.done ? 1 : 0,
+    b.difficulty || 'medium',
+    Number(b.mastery) || 0,
+  );
   res.status(201).json(get('SELECT * FROM course_topics WHERE id = ?', id));
 });
+
 r.patch('/topics/:id', (req, res) => {
   const b = req.body || {};
-  run('UPDATE course_topics SET title=?, notes=?, done=? WHERE id=?', b.title, b.notes || '', b.done ? 1 : 0, req.params.id);
+  const masteryValue = b.mastery != null ? Number(b.mastery) : undefined;
+  run(
+    'UPDATE course_topics SET title=?, notes=?, done=?, difficulty=?, mastery=COALESCE(?, mastery) WHERE id=?',
+    b.title,
+    b.notes || '',
+    b.done ? 1 : 0,
+    b.difficulty || 'medium',
+    masteryValue,
+    req.params.id,
+  );
+  // If mastery wasn't explicitly set, recompute it from real evidence.
+  if (b.mastery == null && (b.done !== undefined || b.difficulty !== undefined)) {
+    studyEngine.refreshTopicMastery(req.params.id);
+  }
   res.json(get('SELECT * FROM course_topics WHERE id = ?', req.params.id));
 });
 r.delete('/topics/:id', (req, res) => {
@@ -98,7 +142,7 @@ r.get('/exams', (_req, res) => {
     all(
       `SELECT e.*, c.name AS course_name, c.color FROM exams e
        JOIN courses c ON c.id = e.course_id ORDER BY e.exam_date`,
-    ),
+    ).map((exam) => ({ ...exam, readiness: studyEngine.examReadiness(exam) })),
   );
 });
 r.post('/exams', (req, res) => {
