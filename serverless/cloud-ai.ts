@@ -529,7 +529,7 @@ export function selectedModel(inputModel?: string) {
   return DEEPSEEK_DEFAULT_MODEL;
 }
 
-export async function deepSeek(messages: any[], options: { model?: string; stream?: boolean; maxTokens?: number; temperature?: number } = {}) {
+export async function deepSeek(messages: any[], options: { model?: string; stream?: boolean; maxTokens?: number; temperature?: number; timeoutMs?: number } = {}) {
   const apiKey = env('DEEPSEEK_API_KEY');
   if (!apiKey) throw new Error('DEEPSEEK_API_KEY is not configured');
   const response = await fetchWithTimeout(`${DEEPSEEK_BASE}/chat/completions`, {
@@ -545,7 +545,7 @@ export async function deepSeek(messages: any[], options: { model?: string; strea
       temperature: options.temperature ?? 0.55,
       max_tokens: options.maxTokens ?? 900,
     }),
-  }, options.stream ? 45000 : 35000);
+  }, options.timeoutMs ?? (options.stream ? 45000 : 35000));
   if (!response.ok) {
     const text = await response.text();
     throw new Error(`DeepSeek ${response.status}: ${text.slice(0, 500)}`);
@@ -553,7 +553,7 @@ export async function deepSeek(messages: any[], options: { model?: string; strea
   return response;
 }
 
-export async function generateText(messages: any[], options: { model?: string; maxTokens?: number; temperature?: number } = {}) {
+export async function generateText(messages: any[], options: { model?: string; maxTokens?: number; temperature?: number; timeoutMs?: number } = {}) {
   const response = await deepSeek(messages, { ...options, stream: false });
   const data = await response.json() as any;
   return {
