@@ -262,7 +262,7 @@ function VoiceTab() {
           </Field>
           <Field label={t('settings.ttsProvider')} hint={t('settings.ttsProviderHint')}>
             <Select value={audio.ttsProviderId || ''} onChange={(v) => patchAudio({ ttsProviderId: v })}>
-              <option value="">{t('settings.ttsEdgeHint')}</option>
+              <option value="">{t('settings.ttsProviderAuto')}</option>
               {(providers || [])
                 .filter((p) => p.type === 'openai-compatible')
                 .map((p) => (

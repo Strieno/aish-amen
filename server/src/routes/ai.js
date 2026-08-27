@@ -1001,6 +1001,20 @@ r.get('/ai/tts/status', (_req, res) => {
   });
 });
 
+/** Resolve a TTS-capable OpenAI provider: the requested one, else any keyed one. */
+function findTtsProvider(preferredId) {
+  if (preferredId) {
+    const provider = getProvider(preferredId);
+    if (provider && typeof provider.tts === 'function') return provider;
+  }
+  for (const info of listProviders()) {
+    if (info.type !== 'openai-compatible') continue;
+    const provider = getProvider(info.id);
+    if (provider && typeof provider.tts === 'function') return provider;
+  }
+  return null;
+}
+
 r.post('/ai/tts', async (req, res) => {
   const b = req.body || {};
   const text = String(b.text || '').trim().slice(0, 4000);
@@ -1010,11 +1024,13 @@ r.post('/ai/tts', async (req, res) => {
   const lang = b.lang === 'en' ? 'en' : 'ar';
   const speed = Math.min(2, Math.max(0.5, Number(b.speed) || 1));
 
-  const wantOpenAI = engine === 'openai' || (engine === 'auto' && b.provider_id);
+  // 'auto' prefers a real ChatGPT-style voice (any OpenAI-compatible provider),
+  // then falls back to the free Edge neural voices.
+  const wantOpenAI = engine === 'openai' || engine === 'auto';
 
   if (wantOpenAI) {
-    const provider = getProvider(b.provider_id) || getPrimaryProvider();
-    if (provider && typeof provider.tts === 'function') {
+    const provider = findTtsProvider(b.provider_id);
+    if (provider) {
       try {
         const audio = await synthesizeOpenAI({
           provider,
