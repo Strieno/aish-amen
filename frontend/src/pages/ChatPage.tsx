@@ -35,7 +35,7 @@ import VoiceInputButton from '../components/VoiceInputButton';
 import SpeakButton from '../components/SpeakButton';
 import LiveVoicePanel from '../components/LiveVoicePanel';
 import { playNotify, playSend } from '../lib/sound';
-import { stopSpeaking } from '../lib/speech';
+import { primeSpeechPlayback, speakAutomatically, stopSpeaking } from '../lib/speech';
 
 function friendlyModelName(model: AiModel, lang: string): string {
   const explicit = model.display_name?.trim();
@@ -260,6 +260,7 @@ export default function ChatPage() {
     setProposals([]);
     abortRef.current = new AbortController();
     stopSpeaking();
+    primeSpeechPlayback();
     playSend();
     let activeConv = conversationId;
 
@@ -297,6 +298,7 @@ export default function ChatPage() {
             setStreamText('');
             setSendError(info.partial ? (info.warning || t('chat.partialWarning')) : '');
             playNotify();
+            void speakAutomatically(info.content || acc);
             if (info.contextUsed && typeof info.contextUsed === 'object') {
               const used = info.contextUsed as ContextUsed & { items?: ContextItem[] };
               setLastUsedCtx(used.items || []);
@@ -423,6 +425,7 @@ export default function ChatPage() {
     setSending(true);
     setStreamText('');
     abortRef.current = new AbortController();
+    primeSpeechPlayback();
     let acc = '';
     try {
       await streamChat(
@@ -443,6 +446,7 @@ export default function ChatPage() {
           onDone: async (info) => {
             setStreamText('');
             setSendError(info.partial ? (info.warning || t('chat.partialWarning')) : '');
+            void speakAutomatically(info.content || acc);
             if (info.contextUsed && typeof info.contextUsed === 'object') {
               const used = info.contextUsed as ContextUsed & { items?: ContextItem[] };
               setLastUsedCtx(used.items || []);

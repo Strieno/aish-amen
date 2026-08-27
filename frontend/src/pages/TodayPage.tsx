@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarPlus, CheckCircle2, Clock, GraduationCap, History, Link2, ListTodo, Plus, Sparkles, Target, Wand2 } from 'lucide-react';
 import { api } from '../lib/api';
@@ -12,6 +12,7 @@ import { SafeHomeScene, CalmEmptyScene } from '../components/SceneArt';
 import SpeakButton from '../components/SpeakButton';
 import { useAiAction } from '../lib/useAiAction';
 import { entityIcon, entityRoute } from '../lib/entity-utils';
+import { primeSpeechPlayback, speakAutomatically } from '../lib/speech';
 
 const LEVEL_LABEL: Record<string, string> = {
   stable: 'today.stable',
@@ -42,10 +43,12 @@ export default function TodayPage() {
   const [eventTime, setEventTime] = useState('');
   const planDay = useAiAction('plan-day');
   const nextTask = useAiAction('next-task');
+  const lastSpokenSuggestion = useRef('');
 
   const todayStr = new Date().toISOString().slice(0, 10);
 
   const suggest = async (silent = false) => {
+    if (!silent) primeSpeechPlayback();
     if (!silent) setSuggesting(true);
     try {
       const r = await api.post<{ suggestion?: string; error?: string; fallback?: boolean }>('/ai/suggest', {});
@@ -64,6 +67,12 @@ export default function TodayPage() {
   useEffect(() => {
     suggest();
   }, []);
+
+  useEffect(() => {
+    if (!suggestion || suggestion === lastSpokenSuggestion.current) return;
+    lastSpokenSuggestion.current = suggestion;
+    void speakAutomatically(suggestion);
+  }, [suggestion]);
 
   // Live intelligence: silently regenerate the cross-domain insight whenever
   // the dashboard data changes (new tasks, check-ins, links, activity...).

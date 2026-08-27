@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { api } from './api';
+import { primeSpeechPlayback } from './speech';
 
 export interface AiActionResult {
   ok: boolean;
@@ -29,6 +30,7 @@ export function useAiAction(action: string) {
 
   const run = useCallback(
     async (payload: Record<string, unknown> = {}) => {
+      primeSpeechPlayback();
       setState({ loading: true, result: null });
       try {
         const result = await api.post<AiActionResult>('/ai/action', { action, ...payload });

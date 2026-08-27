@@ -146,6 +146,26 @@ export function stripMarkdown(text: string): string {
 let currentAudio: HTMLAudioElement | null = null;
 let currentAudioStop: (() => void) | null = null;
 let currentSpeechRequest: AbortController | null = null;
+let primedAudio: HTMLAudioElement | null = null;
+const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
+
+/** Unlock one reusable audio element while a user gesture is active. */
+export function primeSpeechPlayback() {
+  if (typeof Audio === 'undefined') return;
+  if (!primedAudio) primedAudio = new Audio();
+  if (!primedAudio.paused || currentAudio === primedAudio) return;
+  primedAudio.src = SILENT_WAV;
+  primedAudio.volume = 0;
+  void primedAudio.play().then(() => {
+    primedAudio?.pause();
+    if (primedAudio) {
+      primedAudio.currentTime = 0;
+      primedAudio.volume = 1;
+    }
+  }).catch(() => {
+    if (primedAudio) primedAudio.volume = 1;
+  });
+}
 
 export function stopSpeaking() {
   currentSpeechRequest?.abort();
@@ -169,7 +189,9 @@ function playAudioBase64(b64: string, format: string, onStart?: () => void, onEn
       const mime = format === 'mp3' ? 'audio/mpeg' : `audio/${format}`;
       const blob = new Blob([bytes], { type: mime });
       const url = URL.createObjectURL(blob);
-      audio = new Audio(url);
+      audio = primedAudio || new Audio();
+      audio.src = url;
+      audio.volume = 1;
       currentAudio = audio;
       const cleanup = () => {
         URL.revokeObjectURL(url);
@@ -296,4 +318,20 @@ export async function speak(opts: {
 
   browserSpeak(opts);
   return { engine: 'browser', ok: true };
+}
+
+/** Read a newly completed AI response using the user's global voice settings. */
+export async function speakAutomatically(text: string): Promise<SpeakResult | null> {
+  const state = useAppStore.getState();
+  const audio = { ...DEFAULT_AUDIO_SETTINGS, ...(state.settings.audio || {}) };
+  const cleanText = stripMarkdown(text).trim();
+  if (!cleanText || audio.ttsEnabled === false || audio.autoSpeakReplies === false) return null;
+  stopSpeaking();
+  return speak({
+    text: cleanText,
+    lang: audio.voiceLang && audio.voiceLang !== 'auto'
+      ? audio.voiceLang
+      : state.settings.language === 'en' ? 'en-US' : 'ar-SA',
+    rate: audio.speechRate,
+  });
 }

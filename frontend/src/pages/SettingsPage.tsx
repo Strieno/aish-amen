@@ -255,6 +255,17 @@ function VoiceTab() {
           </div>
           <Toggle checked={audio.ttsEnabled} onChange={(v) => patchAudio({ ttsEnabled: v })} label={t('settings.ttsEnabled')} />
         </div>
+        <div className="mt-3 flex items-center justify-between rounded-xl bg-elevated p-3">
+          <div>
+            <p className="text-sm font-bold text-ink">{t('settings.autoSpeakReplies')}</p>
+            <p className="text-xs text-ink-faint">{t('settings.autoSpeakRepliesHint')}</p>
+          </div>
+          <Toggle
+            checked={audio.autoSpeakReplies !== false}
+            onChange={(v) => patchAudio({ autoSpeakReplies: v })}
+            label={t('settings.autoSpeakReplies')}
+          />
+        </div>
         <div className="mt-4 space-y-3">
           <Field label={t('settings.ttsEngine')}>
             <Select value={audio.ttsEngine || 'auto'} onChange={(v) => patchAudio({ ttsEngine: v })}>

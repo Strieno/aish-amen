@@ -1,9 +1,12 @@
+import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Leaf, Sparkles } from 'lucide-react';
 import { useT } from '../lib/i18n';
 import type { AiActionResult } from '../lib/useAiAction';
 import Markdown from './Markdown';
 import { Spinner } from './ui';
+import SpeakButton from './SpeakButton';
+import { speakAutomatically } from '../lib/speech';
 
 /**
  * Renders the outcome of an AI action: loading, error, or markdown result,
@@ -21,6 +24,14 @@ export default function AiResultBox({
   compact?: boolean;
 }) {
   const t = useT();
+  const lastSpokenRef = useRef('');
+  const spokenText = result?.ok === false ? '' : result?.text || result?.answer || '';
+
+  useEffect(() => {
+    if (!spokenText || spokenText === lastSpokenRef.current) return;
+    lastSpokenRef.current = spokenText;
+    void speakAutomatically(spokenText);
+  }, [spokenText]);
 
   if (loading) {
     return (
@@ -63,6 +74,7 @@ export default function AiResultBox({
               {result.model}
             </span>
           )}
+          <SpeakButton text={text} className="ms-1 !h-7 !w-7" />
         </div>
         <Markdown content={text} />
       </div>

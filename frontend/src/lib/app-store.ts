@@ -8,6 +8,7 @@ export type Accent = 'green' | 'midnight' | 'warm' | 'contrast';
 export interface AudioSettings {
   uiSounds: boolean;
   ttsEnabled: boolean;
+  autoSpeakReplies: boolean;
   speechRate: number;
   voiceLang: string;
   ttsEngine: string;
@@ -20,6 +21,7 @@ export interface AudioSettings {
 export const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
   uiSounds: true,
   ttsEnabled: true,
+  autoSpeakReplies: true,
   speechRate: 1,
   voiceLang: 'auto',
   ttsEngine: 'server',
@@ -39,6 +41,7 @@ export function normalizeAudioSettings(value: unknown): AudioSettings {
     ...raw,
     uiSounds: raw.uiSounds !== false,
     ttsEnabled: raw.ttsEnabled !== false,
+    autoSpeakReplies: raw.autoSpeakReplies !== false,
     speechRate: Number.isFinite(speechRate) ? Math.min(1.8, Math.max(0.6, speechRate)) : DEFAULT_AUDIO_SETTINGS.speechRate,
     voiceLang: typeof raw.voiceLang === 'string' ? raw.voiceLang : DEFAULT_AUDIO_SETTINGS.voiceLang,
     ttsEngine: legacyVoiceDefaults && raw.ttsEngine === 'auto'

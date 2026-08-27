@@ -10,7 +10,7 @@ import { Spinner } from './ui';
 import VoiceInputButton from './VoiceInputButton';
 import SpeakButton from './SpeakButton';
 import { playNotify, playSend } from '../lib/sound';
-import { stopSpeaking } from '../lib/speech';
+import { primeSpeechPlayback, speakAutomatically, stopSpeaking } from '../lib/speech';
 
 type AiStatus = 'checking' | 'online' | 'ready' | 'offline' | 'blocked';
 
@@ -90,6 +90,7 @@ export default function AiAssistantPanel() {
     setHistory((h) => [...h, { role: 'user', content: text }]);
     abortRef.current = new AbortController();
     stopSpeaking();
+    primeSpeechPlayback();
     playSend();
 
     let acc = '';
@@ -106,6 +107,7 @@ export default function AiAssistantPanel() {
             const warning = info.partial ? `\n\n> ${info.warning || t('chat.partialWarning')}` : '';
             setHistory((h) => [...h, { role: 'assistant', content: `${acc}${warning}` }]);
             playNotify();
+            void speakAutomatically(info.content || acc);
           },
           onError: (msg) => {
             setStreamText('');
