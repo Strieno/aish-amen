@@ -33,8 +33,8 @@ export function Button({
   );
 }
 
-export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <div className={`card p-5 ${className}`}>{children}</div>;
+export function Card({ children, className = '', hover = false }: { children: ReactNode; className?: string; hover?: boolean }) {
+  return <div className={`card p-5 ${hover ? 'card-hover' : ''} ${className}`}>{children}</div>;
 }
 
 export function Field({
@@ -143,10 +143,21 @@ export function Modal({
   );
 }
 
-export function EmptyState({ text, action }: { text: string; action?: ReactNode }) {
+export function EmptyState({
+  text,
+  action,
+  art,
+}: {
+  text: string;
+  action?: ReactNode;
+  art?: ReactNode;
+}) {
   return (
-    <div className="empty">
-      <p className="mb-3">{text}</p>
+    <div className="empty relative overflow-hidden">
+      <span className="pointer-events-none absolute -top-8 -start-8 h-24 w-24 rounded-full bg-brand-soft/70 blur-2xl" aria-hidden="true" />
+      <span className="pointer-events-none absolute -bottom-10 -end-10 h-28 w-28 rounded-full bg-brand-lighter/40 blur-2xl" aria-hidden="true" />
+      {art && <div className="mx-auto mb-4 max-w-52 animate-floatYSlow">{art}</div>}
+      <p className="relative mb-3">{text}</p>
       {action}
     </div>
   );

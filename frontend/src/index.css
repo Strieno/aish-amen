@@ -158,11 +158,39 @@ html.dark.theme-warm {
   .card {
     @apply rounded-card border border-line bg-card shadow-card;
   }
+  .card-hover {
+    @apply transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-lighter hover:shadow-card-hover;
+  }
+  .glass {
+    @apply border border-line/80 bg-card/70 backdrop-blur-xl;
+  }
+  .text-gradient {
+    background-image: linear-gradient(120deg, rgb(var(--brand-dark)), rgb(var(--brand)), rgb(var(--brand-accent)));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    background-size: 200% auto;
+    animation: gradientShift 8s ease infinite;
+  }
+  .hero-gradient {
+    background-image: linear-gradient(115deg, rgb(var(--brand-soft)), rgb(var(--brand-lighter) / 0.55), rgb(var(--brand-soft)));
+    background-size: 240% 240%;
+    animation: gradientShift 14s ease infinite;
+  }
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-4 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
   }
   .btn-primary {
-    @apply btn bg-brand text-white shadow-button hover:bg-brand-dark focus-visible:ring-brand/25;
+    @apply btn border border-transparent text-white shadow-button focus-visible:ring-brand/25;
+    background-image: linear-gradient(135deg, rgb(var(--brand-accent)), rgb(var(--brand)) 45%, rgb(var(--brand-dark)));
+    background-size: 180% 180%;
+    background-position: 0% 50%;
+    transition: background-position 0.45s ease, transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  }
+  .btn-primary:hover:not(:disabled) {
+    background-position: 100% 50%;
+    box-shadow: 0 6px 20px -6px rgb(var(--brand) / 0.55);
+    filter: brightness(1.05);
   }
   .btn-ghost {
     @apply btn border border-line bg-card text-ink-soft hover:border-brand-lighter hover:bg-brand-soft hover:text-brand-dark focus-visible:ring-brand/15;
@@ -193,5 +221,175 @@ html.dark.theme-warm {
   }
   .section-title {
     @apply text-lg font-bold text-ink;
+  }
+}
+
+/* ============ Animated ambient background ============ */
+.ambient-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.ambient-blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(70px);
+  opacity: 0.5;
+  will-change: transform;
+}
+.ambient-blob-1 {
+  width: 46vw;
+  height: 46vw;
+  min-width: 420px;
+  min-height: 420px;
+  top: -14%;
+  inset-inline-start: -10%;
+  background: radial-gradient(circle at 30% 30%, rgb(var(--brand-accent) / 0.55), rgb(var(--brand-accent) / 0.08) 65%, transparent 75%);
+  animation: blobDrift1 34s ease-in-out infinite alternate;
+}
+.ambient-blob-2 {
+  width: 40vw;
+  height: 40vw;
+  min-width: 360px;
+  min-height: 360px;
+  bottom: -16%;
+  inset-inline-end: -8%;
+  background: radial-gradient(circle at 60% 60%, rgb(var(--brand-lighter) / 0.7), rgb(var(--brand-lighter) / 0.1) 62%, transparent 75%);
+  animation: blobDrift2 42s ease-in-out infinite alternate;
+}
+.ambient-blob-3 {
+  width: 26vw;
+  height: 26vw;
+  min-width: 260px;
+  min-height: 260px;
+  top: 40%;
+  inset-inline-start: 45%;
+  background: radial-gradient(circle at 50% 50%, rgb(var(--brand) / 0.28), transparent 70%);
+  animation: blobDrift3 48s ease-in-out infinite alternate;
+}
+
+.ambient-shape {
+  position: absolute;
+  color: rgb(var(--brand) / 0.16);
+  will-change: transform;
+}
+.ambient-ring {
+  position: absolute;
+  border-radius: 9999px;
+  border: 1.5px solid rgb(var(--brand) / 0.14);
+  will-change: transform;
+}
+.ambient-dot {
+  position: absolute;
+  border-radius: 9999px;
+  background: rgb(var(--brand) / 0.35);
+  will-change: transform;
+}
+
+.ambient-vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 90% at 50% 0%, transparent 55%, rgb(var(--canvas) / 0.5) 100%),
+    radial-gradient(90% 70% at 85% 100%, transparent 60%, rgb(var(--canvas) / 0.35) 100%);
+}
+
+@keyframes blobDrift1 {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(9vw, 6vh) scale(1.12); }
+  100% { transform: translate(-4vw, 11vh) scale(0.94); }
+}
+@keyframes blobDrift2 {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-8vw, -7vh) scale(0.9); }
+  100% { transform: translate(5vw, -12vh) scale(1.15); }
+}
+@keyframes blobDrift3 {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(6vw, -9vh) scale(1.2); }
+  100% { transform: translate(-7vw, 5vh) scale(0.88); }
+}
+
+/* ============ Animated gradient border (hero / featured cards) ============ */
+.gradient-border {
+  position: relative;
+}
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: -1.5px;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: linear-gradient(120deg, rgb(var(--brand-accent)), rgb(var(--brand)), rgb(var(--brand-lighter)), rgb(var(--brand-accent)));
+  background-size: 300% 300%;
+  animation: gradientShift 7s ease infinite;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* ============ Nav item entrance + active indicator ============ */
+.nav-item {
+  position: relative;
+}
+.nav-item .nav-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: 0.75rem;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  background: linear-gradient(120deg, rgb(var(--brand-soft)), rgb(var(--brand-lighter) / 0.5));
+}
+.nav-item:hover .nav-glow,
+.nav-item.active .nav-glow {
+  opacity: 1;
+}
+
+/* ============ Shine sweep for featured elements ============ */
+.shine {
+  position: relative;
+  overflow: hidden;
+}
+.shine::after {
+  content: '';
+  position: absolute;
+  top: -60%;
+  bottom: -60%;
+  width: 45%;
+  inset-inline-start: -70%;
+  transform: skewX(-18deg);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.28), transparent);
+  animation: shineSweep 4.5s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes shineSweep {
+  0% { inset-inline-start: -70%; }
+  55%, 100% { inset-inline-start: 130%; }
+}
+
+/* ============ Focus page style animated progress ring ============ */
+.ring-glow {
+  filter: drop-shadow(0 0 10px rgb(var(--brand-accent) / 0.55));
+  animation: breathe 4s ease-in-out infinite;
+}
+
+/* ============ Accessibility: respect reduced motion ============ */
+@media (prefers-reduced-motion: reduce) {
+  .ambient-blob,
+  .ambient-shape,
+  .ambient-ring,
+  .ambient-dot,
+  .shine::after,
+  .text-gradient,
+  .hero-gradient,
+  .gradient-border::before,
+  .ring-glow {
+    animation: none !important;
   }
 }

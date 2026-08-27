@@ -63,11 +63,58 @@ export default {
           '0%, 100%': { opacity: '0.5' },
           '50%': { opacity: '1' },
         },
+        floatY: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-14px)' },
+        },
+        floatX: {
+          '0%, 100%': { transform: 'translateX(0)' },
+          '50%': { transform: 'translateX(12px)' },
+        },
+        twinkle: {
+          '0%, 100%': { opacity: '0.15', transform: 'scale(0.8)' },
+          '50%': { opacity: '0.9', transform: 'scale(1.15)' },
+        },
+        spinSlow: {
+          '0%': { transform: 'rotate(0deg)' },
+          '100%': { transform: 'rotate(360deg)' },
+        },
+        shimmer: {
+          '0%': { backgroundPosition: '200% 50%' },
+          '100%': { backgroundPosition: '-200% 50%' },
+        },
+        breathe: {
+          '0%, 100%': { transform: 'scale(1)', opacity: '0.7' },
+          '50%': { transform: 'scale(1.06)', opacity: '1' },
+        },
+        glowPulse: {
+          '0%, 100%': { boxShadow: '0 0 0 0 rgb(var(--brand-accent) / 0.45)' },
+          '70%': { boxShadow: '0 0 0 12px rgb(var(--brand-accent) / 0)' },
+        },
+        gradientShift: {
+          '0%, 100%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' },
+        },
+        riseIn: {
+          '0%': { opacity: '0', transform: 'translateY(16px) scale(0.98)' },
+          '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+        },
       },
       animation: {
         fadeIn: 'fadeIn 0.3s ease-out both',
         typingDot: 'typingDot 1.2s ease-in-out infinite',
         pulseSoft: 'pulseSoft 2s ease-in-out infinite',
+        floatY: 'floatY 6s ease-in-out infinite',
+        floatYSlow: 'floatY 9s ease-in-out infinite',
+        floatX: 'floatX 8s ease-in-out infinite',
+        twinkle: 'twinkle 3.5s ease-in-out infinite',
+        spinSlow: 'spinSlow 28s linear infinite',
+        spinSlowReverse: 'spinSlow 40s linear infinite reverse',
+        shimmer: 'shimmer 6s linear infinite',
+        breathe: 'breathe 5s ease-in-out infinite',
+        glowPulse: 'glowPulse 2.4s ease-out infinite',
+        gradientShift: 'gradientShift 8s ease infinite',
+        riseIn: 'riseIn 0.5s ease-out both',
       },
     },
   },

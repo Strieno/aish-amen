@@ -48,9 +48,13 @@ function Boot() {
 
   if (!ready) {
     return (
-      <div className="flex h-dvh items-center justify-center bg-canvas text-ink">
-        <div className="text-center">
-          <p className="mb-4 text-2xl font-extrabold">عِش آمن</p>
+      <div className="relative flex h-dvh items-center justify-center overflow-hidden bg-canvas text-ink">
+        <div className="pointer-events-none absolute -top-24 -start-24 h-72 w-72 rounded-full bg-brand-soft/80 blur-3xl" aria-hidden="true" />
+        <div className="pointer-events-none absolute -bottom-24 -end-24 h-72 w-72 rounded-full bg-brand-lighter/50 blur-3xl" aria-hidden="true" />
+        <div className="relative text-center">
+          <p className="mb-4 animate-floatY text-3xl font-extrabold">
+            <span className="text-gradient">عِش آمن</span>
+          </p>
           <Spinner className="h-8 w-8" />
         </div>
       </div>

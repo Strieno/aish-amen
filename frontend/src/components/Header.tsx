@@ -20,9 +20,15 @@ export default function Header({ onOpenSmart, onOpenQuick }: { onOpenSmart: () =
   }).format(now);
 
   return (
-    <header className="flex items-center justify-between border-b border-line bg-card/60 px-4 py-3 backdrop-blur md:px-8">
-      <div>
-        <p className="text-sm font-bold text-ink md:text-base">{dateStr}</p>
+    <header className="relative z-10 flex items-center justify-between border-b border-line bg-card/60 px-4 py-3 backdrop-blur md:px-8">
+      <div
+        className="pointer-events-none absolute inset-x-0 bottom-[-1px] h-px bg-gradient-to-r from-transparent via-brand-accent/70 to-transparent"
+        aria-hidden="true"
+      />
+      <div className="animate-riseIn">
+        <p className="text-sm font-extrabold text-ink md:text-base">
+          <span className="text-gradient">{dateStr}</span>
+        </p>
         <p className="text-xs text-ink-faint">
           {now.toLocaleTimeString(settings.language === 'en' ? 'en' : 'ar', { hour: '2-digit', minute: '2-digit' })}
         </p>

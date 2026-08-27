@@ -82,13 +82,20 @@ export default function MobileNav() {
             to={path}
             end={path === '/'}
             className={({ isActive }) =>
-              `flex min-w-14 flex-col items-center gap-0.5 rounded-xl px-2 py-1 text-[11px] font-semibold ${
-                isActive ? 'bg-brand-soft text-brand-dark' : 'text-ink-faint'
+              `relative flex min-w-14 flex-col items-center gap-0.5 rounded-xl px-2 py-1 text-[11px] font-semibold transition-all duration-200 ${
+                isActive
+                  ? 'bg-brand-soft text-brand-dark shadow-card'
+                  : 'text-ink-faint hover:-translate-y-0.5 hover:text-ink-soft'
               }`
             }
           >
-            <Icon className="h-5 w-5" />
-            <span>{t(labelKey)}</span>
+            {({ isActive }) => (
+              <>
+                {isActive && <span className="absolute -top-1.5 mx-auto h-1 w-6 rounded-pill bg-gradient-to-r from-brand-accent to-brand" aria-hidden="true" />}
+                <Icon className={`h-5 w-5 transition-transform ${isActive ? 'scale-110 animate-breathe' : ''}`} />
+                <span>{t(labelKey)}</span>
+              </>
+            )}
           </NavLink>
         ))}
         <button

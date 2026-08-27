@@ -7,6 +7,7 @@ import CommandPalette from './components/CommandPalette';
 import AiAssistantPanel from './components/AiAssistantPanel';
 import SmartContextPanel from './components/SmartContextPanel';
 import QuickCapture from './components/QuickCapture';
+import AmbientBackground from './components/AmbientBackground';
 
 export default function App() {
   const [smartOpen, setSmartOpen] = useState(false);
@@ -23,9 +24,10 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
   return (
-    <div className="flex h-dvh overflow-hidden bg-canvas text-ink">
+    <div className="relative flex h-dvh overflow-hidden bg-canvas text-ink">
+      <AmbientBackground />
       <Sidebar />
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="relative z-10 flex min-w-0 flex-1 flex-col">
         <Header onOpenSmart={() => setSmartOpen(true)} onOpenQuick={() => setQuickOpen(true)} />
         <main className="flex-1 overflow-y-auto">
           <div className="mx-auto w-full max-w-4xl px-4 pb-28 pt-6 md:px-8 lg:pb-10">

@@ -8,6 +8,7 @@ import { useAppStore } from '../lib/app-store';
 import type { TodayData } from '../lib/types';
 import { Button, Card, EmptyState, Spinner } from '../components/ui';
 import AiResultBox from '../components/AiResultBox';
+import { SafeHomeScene, CalmEmptyScene } from '../components/SceneArt';
 import { useAiAction } from '../lib/useAiAction';
 import { entityIcon, entityRoute } from '../lib/entity-utils';
 
@@ -16,6 +17,17 @@ const LEVEL_LABEL: Record<string, string> = {
   'slightly-overloaded': 'today.slightly',
   overloaded: 'today.overloaded',
 };
+
+function greeting(hour: number, lang: string) {
+  if (lang === 'en') {
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+  if (hour < 12) return 'صباح الخير';
+  if (hour < 17) return 'مساء الخير';
+  return 'مساء الهدوء';
+}
 
 export default function TodayPage() {
   const t = useT();
@@ -117,16 +129,43 @@ export default function TodayPage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="section-title">{t('today.title')}</h1>
-        <p className="text-sm text-ink-faint">
-          {lang === 'en' ? new Date().toLocaleDateString('en') : new Date().toLocaleDateString('ar')}
-        </p>
+      {/* Hero — greeting + animated art */}
+      <div className="hero-gradient shine relative overflow-hidden rounded-card border border-brand-lighter/60 p-6 shadow-card animate-riseIn md:p-8">
+        <span className="pointer-events-none absolute -top-16 -start-16 h-48 w-48 rounded-full bg-brand-accent/25 blur-3xl" aria-hidden="true" />
+        <span className="pointer-events-none absolute -bottom-20 -end-16 h-52 w-52 rounded-full bg-brand-lighter/60 blur-3xl" aria-hidden="true" />
+        <div className="relative z-10 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wide text-brand-dark">{t('app.name')}</p>
+            <h1 className="mt-1 text-2xl font-extrabold text-ink md:text-3xl">{greeting(new Date().getHours(), lang)}</h1>
+            <p className="mt-1 text-sm text-ink-soft">
+              {lang === 'en' ? new Date().toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'long' }) : new Date().toLocaleDateString('ar', { weekday: 'long', day: 'numeric', month: 'long' })}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span
+                className={`chip ${
+                  data?.safe.level === 'overloaded'
+                    ? '!bg-danger-bg !text-danger'
+                    : data?.safe.level === 'slightly-overloaded'
+                      ? '!bg-warn-bg !text-warn'
+                      : '!bg-card/70'
+                }`}
+              >
+                {t(LEVEL_LABEL[data?.safe.level || 'stable'])}
+              </span>
+              {data?.nextEvent && (
+                <span className="chip !bg-card/70 !text-ink-soft">
+                  <Clock className="h-3 w-3" /> {data.nextEvent.start.slice(11, 16)} — {data.nextEvent.title}
+                </span>
+              )}
+            </div>
+          </div>
+          <SafeHomeScene className="hidden h-40 w-48 shrink-0 drop-shadow-lg sm:block md:h-44 md:w-52" />
+        </div>
       </div>
 
       {/* Current status + safe indicator */}
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
+        <Card hover>
           <div className="mb-2 flex items-center gap-2 text-brand-dark">
             <Clock className="h-4 w-4" />
             <h2 className="text-sm font-bold">{t('today.status')}</h2>
@@ -190,9 +229,10 @@ export default function TodayPage() {
       </div>
 
       {/* AI suggestion */}
-      <Card>
-        <div className="mb-2 flex items-center gap-2 text-brand-dark">
-          <Sparkles className="h-4 w-4" />
+      <Card className="gradient-border relative overflow-hidden">
+        <span className="pointer-events-none absolute -top-10 -end-10 h-32 w-32 rounded-full bg-brand-soft/70 blur-2xl" aria-hidden="true" />
+        <div className="relative mb-2 flex items-center gap-2 text-brand-dark">
+          <Sparkles className="h-4 w-4 animate-twinkle" />
           <h2 className="text-sm font-bold">{t('today.aiSuggestion')}</h2>
         </div>
         {suggesting && !suggestion ? (
@@ -235,6 +275,7 @@ export default function TodayPage() {
         {data?.tasks?.length === 0 && (
           <EmptyState
             text={t('today.noTasks')}
+            art={<CalmEmptyScene />}
             action={
               <Link to="/tasks?new=1">
                 <Button variant="ghost" className="!px-4 !py-2 text-xs">
@@ -474,8 +515,10 @@ function StatCard({
   to?: string;
 }) {
   const inner = (
-    <Card className="!p-4 text-center">
-      <Icon className="mx-auto mb-1 h-4 w-4 text-brand-dark" />
+    <Card hover className="!p-4 text-center">
+      <span className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-accent via-brand to-brand-dark text-white shadow-button">
+        <Icon className="h-4 w-4" />
+      </span>
       <p className="text-xl font-extrabold text-ink">{value}</p>
       <p className="text-xs text-ink-faint">{label}</p>
     </Card>
