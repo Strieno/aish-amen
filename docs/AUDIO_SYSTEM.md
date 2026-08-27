@@ -43,3 +43,16 @@ Insights module.
 - Speech requests and active audio can be stopped without a delayed response starting later.
 
 Ambient ducking (lowering sound-scene volume during speech) remains a future enhancement.
+# وضع التكلم المباشر
+
+من صفحة المحادثة يمكن تشغيل **التكلم المباشر**. يطلب المتصفح إذن الميكروفون مرة واحدة، ثم يستخدم WebRTC مع OpenAI Realtime ليستمع تلقائيًا، يكتشف نهاية الكلام، ويرد بصوت Alloy. يمكن للمستخدم مقاطعة الرد بمجرد أن يبدأ الكلام، كما تُحفظ النصوص المستخرجة من الطرفين داخل نفس المحادثة.
+
+يبقى `OPENAI_API_KEY` في الخادم ولا يُرسل إلى المتصفح. الإعدادات الاختيارية:
+
+```env
+OPENAI_REALTIME_MODEL=gpt-realtime-2.1-mini
+OPENAI_REALTIME_VOICE=alloy
+OPENAI_TRANSCRIBE_MODEL=gpt-4o-mini-transcribe
+```
+
+يتطلب الوضع اتصالًا بالإنترنت وHTTPS (أو localhost أثناء التطوير) وإذن الميكروفون. إعداد الخصوصية القصوى يمنع إنشاء جلسة Realtime السحابية.

@@ -16,6 +16,7 @@ import {
   deleteConversation,
   getMessages,
   getMessage,
+  saveMessage,
   deleteMessage,
   runChatTurn,
   persistTurn,
@@ -50,6 +51,7 @@ import { getPinnedContext, setPinnedContext } from '../services/chat.js';
 import { titleForEntity, CONTEXT_MODES, gatherContext, formatLifeContext } from '../services/life-context.js';
 import { getRecentActivity } from '../services/activity.js';
 import { synthesizeEdge, synthesizeOpenAI, openaiVoiceFor } from '../services/tts.js';
+import { fetchWithTimeout } from '../lib/net.js';
 
 const r = Router();
 
@@ -989,6 +991,113 @@ r.put('/conversations/:id/context', (req, res) => {
 });
 
 r.get('/ai/context-modes', (_req, res) => res.json(CONTEXT_MODES));
+
+/* ---------------- Live voice conversation (OpenAI Realtime + WebRTC) ---------------- */
+
+function findRealtimeProvider(preferredId) {
+  if (preferredId) {
+    const explicit = getProvider(preferredId);
+    if (explicit?.apiKey && explicit?.baseUrl) return explicit;
+  }
+  const candidates = listProviders().filter((provider) => provider.type === 'openai-compatible' && provider.has_api_key);
+  const openAi = candidates.find((provider) => /api\.openai\.com/i.test(provider.base_url || '')) || candidates[0];
+  return openAi ? getProvider(openAi.id) : null;
+}
+
+function realtimeInstructions(body, conversation) {
+  const assistant = resolveAssistant(body.assistant_id) || resolveAssistant(null);
+  const pinnedContext = conversation ? getPinnedContext(conversation.id) : [];
+  const gathered = gatherContext({
+    message: 'محادثة صوتية مباشرة',
+    mode: body.mode || conversation?.mode || 'general',
+    pinnedContext,
+  });
+  const contextText = formatLifeContext(gathered, { tokenBudget: 1800 });
+  const history = conversation ? getMessages(conversation.id).slice(-14) : [];
+  const historyText = history.map((message) => `${message.role}: ${String(message.content || '').slice(0, 700)}`).join('\n');
+  return [
+    'أنت مساعد عِش آمن الشخصي. استخدم بيانات التطبيق المتاحة فقط ولا تختلق معلومات. احترم الخصوصية والسلامة، ولا تنفذ تغييرات من تلقاء نفسك.',
+    assistant?.system_prompt || '',
+    assistant?.response_style ? `أسلوب الرد: ${assistant.response_style}` : '',
+    'هذه محادثة صوتية مباشرة. أجب طبيعيًا وباختصار ومن دون Markdown أو قوائم طويلة. انتظر نهاية كلام المستخدم قبل الرد، وتوقف فورًا عندما يقاطعك.',
+    body.language === 'en' ? 'Prefer English unless the user changes language.' : 'تحدث بالعربية الطبيعية ما لم يغيّر المستخدم اللغة.',
+    contextText ? `سياق عِش آمن:\n${contextText}` : '',
+    historyText ? `آخر المحادثة الحالية:\n${historyText}` : '',
+  ].filter(Boolean).join('\n\n').slice(0, 24000);
+}
+
+r.post('/ai/realtime/call', async (req, res) => {
+  const body = req.body || {};
+  const sdp = String(body.sdp || '').trim().slice(0, 100000);
+  if (!sdp.startsWith('v=0')) return res.status(400).json({ ok: false, error: 'عرض الاتصال الصوتي غير صالح.' });
+  const provider = findRealtimeProvider(body.provider_id);
+  if (!provider) return res.status(503).json({ ok: false, error: 'أضف مزود OpenAI مع مفتاح API من الإعدادات لتشغيل التكلم المباشر.' });
+  const conversation = body.conversation_id ? getConversation(String(body.conversation_id)) : null;
+  const model = String(process.env.OPENAI_REALTIME_MODEL || 'gpt-realtime-2.1-mini').trim();
+  const voice = String(body.voice || process.env.OPENAI_REALTIME_VOICE || 'alloy').trim();
+  const language = body.language === 'en' ? 'en' : 'ar';
+  const session = {
+    type: 'realtime',
+    model,
+    instructions: realtimeInstructions(body, conversation),
+    audio: {
+      input: {
+        noise_reduction: { type: 'near_field' },
+        transcription: { model: process.env.OPENAI_TRANSCRIBE_MODEL || 'gpt-4o-mini-transcribe', language },
+        turn_detection: { type: 'semantic_vad', create_response: true, interrupt_response: true, eagerness: 'auto' },
+      },
+      output: { voice, speed: 1 },
+    },
+  };
+  try {
+    const form = new FormData();
+    form.set('sdp', sdp);
+    form.set('session', JSON.stringify(session));
+    const headers = { ...provider.headers, Authorization: `Bearer ${provider.apiKey}` };
+    const upstream = await fetchWithTimeout(`${provider.baseUrl}/realtime/calls`, { method: 'POST', headers, body: form }, provider.timeoutMs);
+    const answer = await upstream.text();
+    if (!upstream.ok) {
+      let detail = answer;
+      try { detail = JSON.parse(answer)?.error?.message || answer; } catch { /* plain response */ }
+      if (upstream.status === 401 || upstream.status === 403) throw new Error('مفتاح OpenAI غير صحيح أو لا يملك صلاحية Realtime.');
+      if (upstream.status === 429) throw new Error('تم بلوغ حد استخدام OpenAI أو الرصيد. راجع الفوترة ثم أعد المحاولة.');
+      throw new Error(`OpenAI Realtime: ${String(detail).slice(0, 240)}`);
+    }
+    return res.json({ ok: true, sdp: answer, model, voice });
+  } catch (error) {
+    return res.status(502).json({ ok: false, error: error.message || 'تعذر بدء المحادثة الصوتية.' });
+  }
+});
+
+r.post('/voice/turn', (req, res) => {
+  const body = req.body || {};
+  const userText = String(body.user_text || '').replace(/\s+/g, ' ').trim().slice(0, 12000);
+  const assistantText = String(body.assistant_text || '').replace(/\s+/g, ' ').trim().slice(0, 24000);
+  if (!userText || !assistantText) return res.status(400).json({ error: 'النص الصوتي غير مكتمل.' });
+  let conversation = body.conversation_id ? getConversation(String(body.conversation_id)) : null;
+  if (!conversation) {
+    conversation = createConversation({
+      title: userText.slice(0, 60) || 'محادثة صوتية',
+      assistantId: body.assistant_id,
+      model: body.model || 'gpt-realtime-2.1-mini',
+      providerId: body.provider || 'openai-realtime',
+      mode: body.mode || 'general',
+    });
+  }
+  const userMessage = saveMessage({ id: uid('msg-'), conversation_id: conversation.id, role: 'user', content: userText });
+  saveMessage({
+    id: uid('msg-'),
+    conversation_id: conversation.id,
+    parent_message_id: userMessage.id,
+    role: 'assistant',
+    content: assistantText,
+    model: body.model || 'gpt-realtime-2.1-mini',
+    provider: body.provider || 'openai-realtime',
+    metadata: { voice: true },
+  });
+  updateConversation(conversation.id, { model: body.model || conversation.model, providerId: body.provider || conversation.provider_id });
+  return res.json({ conversation_id: conversation.id, user_text: userText, assistant_text: assistantText });
+});
 
 /* ---------------- Neural text-to-speech ---------------- */
 

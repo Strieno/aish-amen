@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
+  AudioLines,
   Copy,
   Eye,
   FolderPlus,
@@ -32,6 +33,7 @@ import EntityChip from '../components/EntityChip';
 import AiActionCards from '../components/AiActionCards';
 import VoiceInputButton from '../components/VoiceInputButton';
 import SpeakButton from '../components/SpeakButton';
+import LiveVoicePanel from '../components/LiveVoicePanel';
 import { playNotify, playSend } from '../lib/sound';
 import { stopSpeaking } from '../lib/speech';
 
@@ -71,6 +73,7 @@ export default function ChatPage() {
   const t = useT();
   const lang = useAppStore((s) => s.settings.language);
   const defaultModel = useAppStore((s) => s.settings.ai?.defaultModel || '');
+  const audioSettings = useAppStore((s) => s.settings.audio);
   const [params] = useSearchParams();
   const convId = params.get('conv');
 
@@ -85,6 +88,7 @@ export default function ChatPage() {
   const [sending, setSending] = useState(false);
   const [streamText, setStreamText] = useState('');
   const [sendError, setSendError] = useState('');
+  const [showLiveVoice, setShowLiveVoice] = useState(false);
   const [lastPrompt, setLastPrompt] = useState('');
   const [assistantId, setAssistantId] = useState<string>('');
   const [modelKey, setModelKey] = useState<string>('');
@@ -471,6 +475,11 @@ export default function ChatPage() {
   const aiBlocked = aiStatus?.privacyBlocked === true || aiStatus?.providers.some((provider) => provider.status === 'blocked') === true;
   const activeProvider = aiStatus?.providers.find((provider) => provider.isPrimary || Boolean(provider.is_primary))
     || aiStatus?.providers.find((provider) => (provider.status === 'connected' || provider.status === 'configured') && provider.modelCount > 0);
+  const handleVoiceTurn = useCallback(async (turn: { conversation_id: string }) => {
+    setConversationId(turn.conversation_id);
+    await loadMessages(turn.conversation_id);
+    refetchConvs();
+  }, [loadMessages, refetchConvs]);
 
   return (
     <div className="flex min-h-[calc(100dvh-9rem)] flex-col md:flex-row md:gap-4 lg:min-h-[calc(100dvh-8rem)]">
@@ -721,6 +730,14 @@ export default function ChatPage() {
               )}
             </div>
           )}
+          <Button
+            variant="ghost"
+            className="mb-2 w-full justify-center !border-brand/30 !bg-brand-soft text-brand-dark"
+            onClick={() => setShowLiveVoice(true)}
+            disabled={aiBlocked}
+          >
+            <AudioLines className="h-5 w-5" /> {t('voice.open')}
+          </Button>
           <div className="flex items-end gap-2">
             <VoiceInputButton onFinal={(text) => setInput((v) => (v ? `${v} ` : '') + text)} />
             <textarea
@@ -751,6 +768,17 @@ export default function ChatPage() {
       </div>
 
       {/* ======= Modals ======= */}
+
+      <LiveVoicePanel
+        open={showLiveVoice}
+        conversationId={conversationId}
+        assistantId={assistantId}
+        mode={mode}
+        voice={audioSettings.ttsVoice || 'alloy'}
+        language={lang}
+        onClose={() => setShowLiveVoice(false)}
+        onTurn={handleVoiceTurn}
+      />
 
       {/* Context inspector */}
       <Modal open={!!inspector} onClose={() => setInspector(null)} title={t('chat.whyAITold')}>

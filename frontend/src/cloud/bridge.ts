@@ -578,11 +578,47 @@ export async function mirrorChatTurn(input: { conversationId: string; content: s
   await repo('messages', 'msg-').create({ conversation_id: input.conversationId, role: 'assistant', content: input.assistantContent, model: input.model || null, provider: input.provider || null });
 }
 
+async function persistVoiceTurn(input: Record<string, unknown>) {
+  const userText = String(input.user_text || '').replace(/\s+/g, ' ').trim();
+  const assistantText = String(input.assistant_text || '').replace(/\s+/g, ' ').trim();
+  if (!userText || !assistantText) throw new Error('النص الصوتي غير مكتمل.');
+  const conversationRepo = repo('conversations', 'conv-');
+  let conversationId = String(input.conversation_id || '').trim();
+  const existing = conversationId ? await conversationRepo.get(conversationId) : null;
+  if (!existing) {
+    const created = await conversationRepo.create({
+      ...(conversationId ? { id: conversationId } : {}),
+      title: userText.slice(0, 60) || 'محادثة صوتية',
+      assistant_id: input.assistant_id || null,
+      model: input.model || 'gpt-realtime-2.1-mini',
+      provider_id: input.provider || 'openai-realtime',
+      mode: input.mode || 'general',
+      tags: [],
+      pinned: false,
+    });
+    conversationId = String(created.id);
+  } else {
+    await conversationRepo.update(conversationId, { updated_at: now() });
+  }
+  await repo('messages', 'msg-').create({ conversation_id: conversationId, role: 'user', content: userText });
+  await repo('messages', 'msg-').create({
+    conversation_id: conversationId,
+    role: 'assistant',
+    content: assistantText,
+    model: input.model || 'gpt-realtime-2.1-mini',
+    provider: input.provider || 'openai-realtime',
+    metadata: { voice: true },
+  });
+  return { conversation_id: conversationId, user_text: userText, assistant_text: assistantText };
+}
+
 export async function tryCloudRequest(path: string, method: Method, input?: unknown): Promise<CloudResult> {
   if (!cloudConfigured) return { handled: false };
   const url = new URL(path, window.location.origin);
   const route = url.pathname;
   const body = asObject(input);
+
+  if (route === '/voice/turn' && method === 'POST') return { handled: true, data: await persistVoiceTurn(body) };
 
   if (route === '/settings' && method === 'GET') return { handled: true, data: await getSettings() };
   if (route === '/settings' && method === 'PUT') return { handled: true, data: await saveSettings(body) };

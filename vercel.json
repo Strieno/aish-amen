@@ -65,6 +65,10 @@
       "destination": "/api/cloud?route=ai-tts"
     },
     {
+      "source": "/api/ai/realtime/call",
+      "destination": "/api/cloud?route=ai-realtime-call"
+    },
+    {
       "source": "/api/conversations/:id/categorize",
       "destination": "/api/cloud?route=conversation-categorize&id=:id"
     },
