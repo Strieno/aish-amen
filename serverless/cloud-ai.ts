@@ -60,10 +60,28 @@ export function deepSeekConfigured() {
   return Boolean(env('DEEPSEEK_API_KEY'));
 }
 
-function supabaseEnv() {
-  const url = env('SUPABASE_URL') || env('VITE_SUPABASE_URL');
-  const key = env('SUPABASE_PUBLISHABLE_KEY') || env('VITE_SUPABASE_PUBLISHABLE_KEY') || env('SUPABASE_ANON_KEY');
+function headerValue(req: any, name: string) {
+  const headers = req?.headers || {};
+  const direct = headers[name] ?? headers[name.toLowerCase()] ?? headers[name.toUpperCase()];
+  return Array.isArray(direct) ? String(direct[0] || '').trim() : String(direct || '').trim();
+}
+
+function supabaseEnv(req?: any) {
+  const url = headerValue(req, 'x-supabase-url') || env('SUPABASE_URL') || env('VITE_SUPABASE_URL');
+  const key = headerValue(req, 'x-supabase-key') || env('SUPABASE_PUBLISHABLE_KEY') || env('VITE_SUPABASE_PUBLISHABLE_KEY') || env('SUPABASE_ANON_KEY');
   return { url: url.replace(/\/$/, ''), key };
+}
+
+function decodeJwtPayload(token: string): any | null {
+  try {
+    const part = token.split('.')[1];
+    if (!part) return null;
+    const normalized = part.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized + '='.repeat((4 - normalized.length % 4) % 4);
+    return JSON.parse(Buffer.from(padded, 'base64').toString('utf8'));
+  } catch {
+    return null;
+  }
 }
 
 export function bearerFromRequest(req: any) {
@@ -74,17 +92,17 @@ export function bearerFromRequest(req: any) {
 
 export async function authContext(req: any): Promise<SbContext | null> {
   const token = bearerFromRequest(req);
-  const { url, key } = supabaseEnv();
+  const { url, key } = supabaseEnv(req);
   if (!token || !url || !key) return null;
-  const response = await fetchWithTimeout(`${url}/auth/v1/user`, {
-    headers: { apikey: key, Authorization: `Bearer ${token}` },
-  });
-  if (!response.ok) return null;
-  const user = await response.json() as any;
-  if (!user?.id) return null;
-  const userId = String(user.id);
+
+  const payload = decodeJwtPayload(token);
+  const userId = String(payload?.sub || '').trim();
+  const exp = Number(payload?.exp || 0);
+  if (!userId || (exp && exp * 1000 <= Date.now())) return null;
+
   const allowlist = env('AISH_AMAN_ALLOWED_USER_IDS').split(',').map((value) => value.trim()).filter(Boolean);
   if (allowlist.length && !allowlist.includes(userId)) return null;
+
   return { url, key, token, userId };
 }
 

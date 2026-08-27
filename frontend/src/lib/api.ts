@@ -1,9 +1,15 @@
 // Typed API client. In cloud mode, supported CRUD routes use Supabase directly;
 // local/AI routes keep using the trusted backend.
-import { apiBaseUrl, cloudConfigured, supabase } from '../cloud/client';
+import { apiBaseUrl, cloudConfigured, supabase, supabasePublishableKey, supabaseUrl } from '../cloud/client';
 import { tryCloudRequest } from '../cloud/bridge';
 
 const BASE = apiBaseUrl;
+
+const cloudHeaders = cloudConfigured ? {
+  'X-Supabase-Url': supabaseUrl,
+  'X-Supabase-Key': supabasePublishableKey,
+} : {};
+
 
 function trustedBase() {
   // In the deployed cloud app, trusted AI traffic must stay on the same Vercel origin.
@@ -35,7 +41,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
   const token = cloudConfigured ? (await supabase?.auth.getSession())?.data.session?.access_token : null;
   const res = await fetch(trustedBase() + path, {
-    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(options.headers || {}) },
+    headers: { 'Content-Type': 'application/json', ...cloudHeaders, ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(options.headers || {}) },
     ...options,
   });
   if (!res.ok) {
@@ -87,7 +93,7 @@ export async function streamChat(
   const base = trustedBase();
   const res = await fetch(isAssist ? base + '/ai/assist/stream' : base + '/chat/stream', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    headers: { 'Content-Type': 'application/json', ...cloudHeaders, ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body: JSON.stringify(requestPayload),
     signal: handlers.signal,
   });

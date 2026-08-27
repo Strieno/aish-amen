@@ -1,7 +1,8 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL || '').trim();
-const publishableKey = String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || '').trim();
+export const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL || '').trim();
+export const supabasePublishableKey = String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || '').trim();
+const publishableKey = supabasePublishableKey;
 
 export const cloudConfigured = Boolean(supabaseUrl && publishableKey);
 
