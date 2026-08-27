@@ -213,6 +213,36 @@ function line(value: unknown, max = 240) {
   return text.length > max ? `${text.slice(0, max)}…` : text;
 }
 
+function stringList(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item ?? '').trim()).filter(Boolean);
+  }
+
+  if (typeof value === 'string') {
+    const text = value.trim();
+    if (!text) return [];
+
+    // Supabase may return legacy JSON/text columns as serialized arrays.
+    if ((text.startsWith('[') && text.endsWith(']')) || (text.startsWith('{') && text.endsWith('}'))) {
+      try {
+        const parsed = JSON.parse(text);
+        if (Array.isArray(parsed)) return stringList(parsed);
+      } catch {
+        // Fall through to treating the value as plain text.
+      }
+    }
+
+    // Accept older comma-separated tag values too.
+    return text.split(',').map((item) => item.trim()).filter(Boolean);
+  }
+
+  return [];
+}
+
+function joinStringList(value: unknown, separator = ' ') {
+  return stringList(value).join(separator);
+}
+
 function formatRows(title: string, rows: any[], render: (row: any) => string) {
   if (!rows.length) return '';
   return `## ${title}\n${rows.map((row) => `- ${render(row)}`).join('\n')}`;
@@ -357,12 +387,12 @@ export async function buildCloudContext(ctx: SbContext, input: {
   const data: Record<string, any[]> = Object.fromEntries(entries);
 
   const profile = data.profiles?.[0];
-  const memories = relevant(data.memories || [], query, (r: any) => `${r.content} ${(r.tags || []).join(' ')}`, 9, 3);
-  const tasks = relevant((data.tasks || []).filter((r: any) => !['done', 'cancelled'].includes(r.status)), query, (r: any) => `${r.title} ${r.description} ${r.notes} ${(r.tags || []).join(' ')}`, 12, 6);
+  const memories = relevant(data.memories || [], query, (r: any) => `${r.content} ${joinStringList(r.tags)}`, 9, 3);
+  const tasks = relevant((data.tasks || []).filter((r: any) => !['done', 'cancelled'].includes(r.status)), query, (r: any) => `${r.title} ${r.description} ${r.notes} ${joinStringList(r.tags)}`, 12, 6);
   const goals = relevant((data.goals || []).filter((r: any) => r.status === 'active'), query, (r: any) => `${r.title} ${r.life_area} ${r.notes}`, 8, 4);
   const projects = relevant(data.projects || [], query, (r: any) => `${r.name} ${r.notes}`, 6, 2);
-  const journal = relevant(data.journal || [], query, (r: any) => `${r.title} ${r.content} ${(r.tags || []).join(' ')}`, 6, 2);
-  const workNotes = relevant(data.workNotes || [], query, (r: any) => `${r.title} ${r.content} ${(r.tags || []).join(' ')}`, 7, 2);
+  const journal = relevant(data.journal || [], query, (r: any) => `${r.title} ${r.content} ${joinStringList(r.tags)}`, 6, 2);
+  const workNotes = relevant(data.workNotes || [], query, (r: any) => `${r.title} ${r.content} ${joinStringList(r.tags)}`, 7, 2);
   const chunks = relevant(data.chunks || [], query, (r: any) => r.content, 8, 1);
   const priorConversationRows = (data.conversations || []).filter((r: any) => r.id !== input.conversation?.id);
   const conversationSummaries = priorConversationRows.map((conversation: any) => {
