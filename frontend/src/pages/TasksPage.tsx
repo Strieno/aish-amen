@@ -8,6 +8,7 @@ import type { Project, Task } from '../lib/types';
 import { Badge, Button, Card, EmptyState, Field, Modal, Select, Spinner, Toggle } from '../components/ui';
 import { useAiAction } from '../lib/useAiAction';
 import AiResultBox from '../components/AiResultBox';
+import { celebrate } from '../components/visualizations';
 
 const STATUS_LABEL: Record<string, string> = {
   inbox: 'tasks.inbox',
@@ -55,6 +56,7 @@ export default function TasksPage() {
   const toggleComplete = async (task: Task) => {
     await api.post(`/tasks/${task.id}/complete`);
     refetch();
+    if (task.status !== 'done') celebrate({ text: task.title.slice(0, 24) });
   };
 
   const save = async (data: Partial<Task>) => {

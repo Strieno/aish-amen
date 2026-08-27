@@ -6,6 +6,7 @@ import { useT } from '../lib/i18n';
 import type { Memory } from '../lib/types';
 import { Badge, Button, Card, EmptyState, Field, Modal, Spinner, Toggle } from '../components/ui';
 import { useAiAction } from '../lib/useAiAction';
+import { MemoryConstellation } from '../components/visualizations';
 
 const SOURCES = ['all', 'user', 'chat', 'task', 'journal', 'checkin', 'milestone', 'focus', 'exam', 'safe-plan', 'work-note'];
 
@@ -178,10 +179,18 @@ export default function MemoryPage() {
           </div>
         } />
       ) : (
-        <div className="space-y-2">
-          {(data || []).map((m) => (
-            <Card key={m.id} className="!p-4">
-              <div className="flex items-start gap-3">
+        <>
+          <Card className="relative overflow-hidden !py-4">
+            <div className="mb-1 flex items-center gap-2 text-brand-dark">
+              <Brain className="h-4 w-4" />
+              <h2 className="text-sm font-bold">{t('graph.title')}</h2>
+            </div>
+            <MemoryConstellation memories={data || []} />
+          </Card>
+          <div className="space-y-2">
+            {(data || []).map((m) => (
+              <Card key={m.id} className="!p-4">
+                <div className="flex items-start gap-3">
                 <Brain className="mt-1 h-4 w-4 shrink-0 text-brand-dark" />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm leading-relaxed text-ink">{m.content}</p>
@@ -208,7 +217,8 @@ export default function MemoryPage() {
               </div>
             </Card>
           ))}
-        </div>
+          </div>
+        </>
       )}
 
       <Modal open={showAdd} onClose={() => setShowAdd(false)} title={t('memory.add')}>

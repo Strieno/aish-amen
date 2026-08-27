@@ -8,8 +8,23 @@ import { Badge, Button, Card, EmptyState, Field, Modal, Spinner } from '../compo
 import { useAiAction } from '../lib/useAiAction';
 import AiResultBox from '../components/AiResultBox';
 import RelatedPanel from '../components/RelatedPanel';
+import { PageBackdrop, celebrate } from '../components/visualizations';
 
 const AREAS = ['education', 'health', 'work', 'money', 'home', 'personal', 'learning', 'entertainment', 'administration'];
+
+function GoalPathArt({ className = '' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 120 56" className={className} role="img" aria-label="طريق أهداف">
+      <path d="M6 46 Q 30 18, 52 36 T 100 24 T 116 30" fill="none" stroke="rgb(var(--brand-accent) / 0.7)" strokeWidth="2" strokeDasharray="3 6" />
+      {[
+        { x: 6, y: 46 }, { x: 30, y: 18 }, { x: 52, y: 36 }, { x: 78, y: 24 }, { x: 100, y: 24 }, { x: 114, y: 30 },
+      ].map((p, i) => (
+        <circle key={i} cx={p.x} cy={p.y} r={i === 0 ? 4 : 3.5} fill={i === 0 ? 'rgb(var(--line))' : 'rgb(var(--brand-accent))'} />
+      ))}
+      <path d="M110 20 L116 30 L106 28 Z" fill="rgb(var(--brand-accent))" />
+    </svg>
+  );
+}
 
 export default function GoalsPage() {
   const t = useT();
@@ -42,8 +57,10 @@ export default function GoalsPage() {
   };
 
   const toggleMilestone = async (m: Milestone) => {
-    await api.patch(`/milestones/${m.id}`, { done: !m.done });
+    const next = !m.done;
+    await api.patch(`/milestones/${m.id}`, { done: next });
     refetch();
+    if (next) celebrate({ text: 'مرحلة جديدة' });
   };
 
   const removeGoal = async (g: Goal) => {
@@ -54,7 +71,8 @@ export default function GoalsPage() {
   const filtered = areaFilter ? (goals || []).filter((g) => g.life_area === areaFilter) : goals || [];
 
   return (
-    <div className="space-y-4">
+    <div className="relative isolate space-y-4">
+      <PageBackdrop variant="path" />
       <div className="flex items-center justify-between">
         <h1 className="section-title">{t('goals.title')}</h1>
         <Button onClick={() => setShowModal(true)}>
@@ -76,7 +94,7 @@ export default function GoalsPage() {
       {loading ? (
         <Spinner className="mx-auto mt-8 block h-7 w-7" />
       ) : filtered.length === 0 ? (
-        <EmptyState text={t('goals.noGoals')} />
+        <EmptyState text={t('goals.noGoals')} art={<GoalPathArt />} />
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {filtered.map((g) => (

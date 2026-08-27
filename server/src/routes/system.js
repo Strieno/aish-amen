@@ -216,6 +216,44 @@ r.get('/dashboard/today', (req, res) => {
   });
 });
 
+/* ---------------- Weekly dashboard (visual layer) ---------------- */
+
+r.get('/dashboard/week', (_req, res) => {
+  const days = [];
+  const moodMap = { great: 5, good: 4, neutral: 3, low: 2, bad: 1 };
+  for (let i = 6; i >= 0; i -= 1) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    const checkin = get('SELECT * FROM checkins WHERE entry_date = ?', key);
+    const tasksDone = all('SELECT COUNT(*) AS n FROM tasks WHERE status = ? AND completed_at LIKE ?', 'done', `${key}%`)[0].n;
+    const focusMinutes = all("SELECT COALESCE(SUM(minutes),0) AS m FROM focus_sessions WHERE completed = 1 AND started_at LIKE ?", `${key}%`)[0].m;
+    const journalMood = get('SELECT mood FROM journal_entries WHERE entry_date = ? AND mood IS NOT NULL ORDER BY created_at DESC LIMIT 1', key);
+    const gratitude = all('SELECT COUNT(*) AS n FROM gratitude_entries WHERE entry_date = ?', key)[0].n;
+
+    let quality = 0;
+    if (checkin) quality += checkin.stress && checkin.stress <= 2 ? 2 : 1;
+    if (tasksDone > 0) quality += Math.min(2, tasksDone);
+    if (focusMinutes >= 25) quality += 2;
+    else if (focusMinutes > 0) quality += 1;
+    if (gratitude > 0) quality += 1;
+    if (journalMood?.mood && moodMap[journalMood.mood] >= 4) quality += 1;
+
+    days.push({
+      date: key,
+      quality: Math.min(7, quality),
+      mood: journalMood?.mood || (checkin ? (checkin.energy >= 4 ? 'good' : checkin.energy <= 2 ? 'low' : 'neutral') : null),
+      stress: checkin?.stress ?? null,
+      energy: checkin?.energy ?? null,
+      tasksDone,
+      focusMinutes,
+      gratitude,
+      checkin: !!checkin,
+    });
+  }
+  res.json({ days });
+});
+
 /* ---------------- Export ---------------- */
 
 function dumpAll() {

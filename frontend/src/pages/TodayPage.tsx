@@ -10,6 +10,7 @@ import { Button, Card, EmptyState, Spinner } from '../components/ui';
 import AiResultBox from '../components/AiResultBox';
 import { SafeHomeScene, CalmEmptyScene } from '../components/SceneArt';
 import SpeakButton from '../components/SpeakButton';
+import { SafeLivingOrb, LifePulse, WeeklyLifeMap } from '../components/visualizations';
 import { useAiAction } from '../lib/useAiAction';
 import { entityIcon, entityRoute } from '../lib/entity-utils';
 import { primeSpeechPlayback, speakAutomatically } from '../lib/speech';
@@ -169,7 +170,15 @@ export default function TodayPage() {
               )}
             </div>
           </div>
-          <SafeHomeScene className="hidden h-40 w-48 shrink-0 drop-shadow-lg sm:block md:h-44 md:w-52" />
+          <div className="flex items-center gap-4">
+            <SafeHomeScene className="hidden h-28 w-36 shrink-0 opacity-90 sm:block" />
+            <SafeLivingOrb
+              level={data?.safe.level || 'stable'}
+              score={dayScore(data)}
+              size={148}
+              className="hidden sm:block"
+            />
+          </div>
         </div>
       </div>
 
@@ -341,6 +350,23 @@ export default function TodayPage() {
           icon={CheckCircle2}
           to={data?.checkin ? undefined : '/safe'}
         />
+      </div>
+
+      {/* Life Pulse + weekly journey */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card hover>
+          <div className="mb-1 flex items-center gap-2 text-brand-dark">
+            <span className="text-xs font-bold">{t('today.lifePulse')}</span>
+            <span className="ms-auto text-[10px] text-ink-faint">7 أبعاد</span>
+          </div>
+          <LifePulse points={lifePulsePoints(data)} className="h-24" />
+        </Card>
+        <Card hover>
+          <div className="mb-1 flex items-center gap-2 text-brand-dark">
+            <span className="text-xs font-bold">{t('today.weekMap')}</span>
+          </div>
+          <WeeklyLifeMap />
+        </Card>
       </div>
 
       {/* ======= Today Intelligence ======= */}
@@ -545,4 +571,33 @@ function StatCard({
   ) : (
     inner
   );
+}
+
+/** A calm 0..100 day score derived from real dashboard data (not medical). */
+function dayScore(data: TodayData | null): number {
+  let s = 50;
+  s += Math.min(20, (data?.stats.doneToday ?? 0) * 5);
+  s += Math.min(15, (data?.stats.focusMinutesToday ?? 0) / 4);
+  if (data?.checkin) s += 5;
+  if (data?.safe?.level === 'stable') s += 10;
+  else if (data?.safe?.level === 'slightly-overloaded') s += 5;
+  else s -= 10;
+  return Math.min(100, Math.max(20, Math.round(s)));
+}
+
+/** The day's rhythm across real dimensions for LifePulse. */
+function lifePulsePoints(data: TodayData | null) {
+  const clamp = (v: number) => Math.min(1, Math.max(0, v));
+  const goalsAvg = (data?.intelligence?.goals?.length
+    ? data.intelligence.goals.reduce((s, g) => s + (g.progress ?? 0), 0) / data.intelligence.goals.length
+    : 0);
+  return [
+    { key: 'tasks', label: 'مهام', value: clamp((data?.stats.doneToday ?? 0) / 5) },
+    { key: 'focus', label: 'تركيز', value: clamp((data?.stats.focusMinutesToday ?? 0) / 60) },
+    { key: 'state', label: 'حالة', value: data?.checkin ? clamp((data.checkin.energy ?? 3) / 5) : 0.4 },
+    { key: 'goals', label: 'أهداف', value: clamp(goalsAvg) },
+    { key: 'study', label: 'دراسة', value: (data?.intelligence?.study?.exams?.length ?? 0) > 0 ? 0.7 : 0.25 },
+    { key: 'schedule', label: 'جدول', value: clamp((data?.schedule?.length ?? 0) / 6) },
+    { key: 'calm', label: 'هدوء', value: data?.safe?.level === 'stable' ? 0.85 : data?.safe?.level === 'slightly-overloaded' ? 0.5 : 0.25 },
+  ];
 }

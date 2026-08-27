@@ -4,11 +4,23 @@ import { api } from '../lib/api';
 import { useApi } from '../lib/useApi';
 import { useT } from '../lib/i18n';
 import { Button, Card, EmptyState, Spinner } from '../components/ui';
+import { PageBackdrop, celebrate } from '../components/visualizations';
 
 interface GratitudeRow {
   id: string;
   items: string[];
   entry_date: string;
+}
+
+function GratitudeStarArt({ className = '' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 80 64" className={className} role="img" aria-label="نجمة امتنان">
+      <path d="M40 8 L46 26 L66 26 L50 38 L56 58 L40 46 L24 58 L30 38 L14 26 L34 26 Z" fill="rgb(var(--warn) / 0.85)" />
+      <circle cx="66" cy="14" r="3" fill="rgb(var(--brand-accent) / 0.7)" className="animate-twinkle" style={{ animationDelay: '0.5s' }} />
+      <circle cx="14" cy="46" r="2.5" fill="rgb(var(--brand-accent) / 0.6)" className="animate-twinkle" style={{ animationDelay: '1.2s' }} />
+      <circle cx="70" cy="46" r="2" fill="rgb(var(--brand-accent) / 0.5)" className="animate-twinkle" style={{ animationDelay: '0.9s' }} />
+    </svg>
+  );
 }
 
 export default function GratitudePage() {
@@ -25,10 +37,12 @@ export default function GratitudePage() {
     setSaved(true);
     setTimeout(() => setSaved(false), 1500);
     refetch();
+    celebrate({ text: t('gratitude.entry') });
   };
 
   return (
-    <div className="space-y-5">
+    <div className="relative isolate space-y-5">
+      <PageBackdrop variant="stars" />
       <div>
         <h1 className="section-title">{t('gratitude.title')}</h1>
         <p className="text-sm text-ink-faint">{t('gratitude.subtitle')}</p>
@@ -63,7 +77,7 @@ export default function GratitudePage() {
       {loading ? (
         <Spinner className="mx-auto mt-6 block h-6 w-6" />
       ) : (data || []).length === 0 ? (
-        <EmptyState text={t('gratitude.empty')} />
+        <EmptyState text={t('gratitude.empty')} art={<GratitudeStarArt />} />
       ) : (
         <div className="space-y-3">
           {(data || []).map((row) => (

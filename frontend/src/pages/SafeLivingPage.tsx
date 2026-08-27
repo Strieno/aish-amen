@@ -3,10 +3,11 @@ import { CheckCircle2, Pencil, Plus, ShieldCheck, Sparkles, Trash2, XCircle } fr
 import { api } from '../lib/api';
 import { useApi } from '../lib/useApi';
 import { useT } from '../lib/i18n';
-import type { SafePlan } from '../lib/types';
+import type { SafePlan, TodayData } from '../lib/types';
 import { Badge, Button, Card, EmptyState, Field, Modal, Spinner } from '../components/ui';
 import { useAiAction } from '../lib/useAiAction';
 import AiResultBox from '../components/AiResultBox';
+import { SafeLivingRings, LivingGarden } from '../components/visualizations';
 
 const LEVEL: Record<string, { key: string; tone: 'ok' | 'warn' | 'danger' }> = {
   stable: { key: 'today.stable', tone: 'ok' },
@@ -14,11 +15,37 @@ const LEVEL: Record<string, { key: string; tone: 'ok' | 'warn' | 'danger' }> = {
   overloaded: { key: 'today.overloaded', tone: 'danger' },
 };
 
+const clamp = (v: number) => Math.min(1, Math.max(0, v));
+
+function ringsFrom(data: TodayData | null) {
+  const done = data?.stats.doneToday ?? 0;
+  const open = data?.stats.openTotal ?? 0;
+  const focus = data?.stats.focusMinutesToday ?? 0;
+  const energy = data?.checkin?.energy ?? null;
+  const stress = data?.checkin?.stress ?? null;
+  return [
+    { key: 'calm', label: 'العيش الآمن', value: data?.safe?.level === 'stable' ? 0.9 : data?.safe?.level === 'slightly-overloaded' ? 0.55 : 0.25, color: 'accent' as const },
+    { key: 'tasks', label: 'الإنجاز', value: clamp(done / Math.max(4, done + Math.max(0, open - done))), color: 'brand' as const },
+    { key: 'focus', label: 'التركيز', value: clamp(focus / 60), color: 'warn' as const },
+    { key: 'care', label: 'العناية', value: energy && stress ? clamp((energy / 5 + (6 - stress) / 6) / 2) : 0.1, color: 'danger' as const },
+  ];
+}
+
+function gardenFrom(data: TodayData | null) {
+  return {
+    tasks: data?.stats.doneToday ?? 0,
+    focus: Math.round((data?.stats.focusMinutesToday ?? 0) / 25),
+    gratitude: 0,
+    goals: (data?.intelligence?.goals ?? []).filter((g) => (g.progress ?? 0) >= 0.5).length,
+  };
+}
+
 export default function SafeLivingPage() {
   const t = useT();
   const { data: status } = useApi<{ level: string; factors: unknown }>('/safe/status');
   const { data: plans, loading, refetch } = useApi<SafePlan[]>('/safe/plans');
   const { data: sessions, refetch: refetchSessions } = useApi<{ plan_name?: string; status: string }[]>('/safe/sessions');
+  const { data: today } = useApi<TodayData>('/dashboard/today');
 
   const [editing, setEditing] = useState<SafePlan | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -75,6 +102,26 @@ export default function SafeLivingPage() {
           ) : (
             <p className="text-sm text-ink-faint">{t('common.none')} — {t('safe.activate')}</p>
           )}
+        </Card>
+      </div>
+
+      {/* Visual identity — rings + garden */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <div className="mb-2 flex items-center gap-2 text-brand-dark">
+            <ShieldCheck className="h-4 w-4" />
+            <h2 className="text-sm font-bold">{t('today.rings')}</h2>
+          </div>
+          <SafeLivingRings segments={ringsFrom(today)} size={120} />
+        </Card>
+        <Card>
+          <div className="mb-2 flex items-center gap-2 text-brand-dark">
+            <Sparkles className="h-4 w-4" />
+            <h2 className="text-sm font-bold">{t('today.garden')}</h2>
+          </div>
+          <div className="flex justify-center">
+            <LivingGarden stats={gardenFrom(today)} />
+          </div>
         </Card>
       </div>
 

@@ -6,6 +6,7 @@ import { useT } from '../lib/i18n';
 import { usePlayer } from '../lib/audio-player';
 import type { AudioFile, FocusSession, Task } from '../lib/types';
 import { Badge, Button, Card, EmptyState, Select } from '../components/ui';
+import { celebrate, PageBackdrop } from '../components/visualizations';
 
 const PRESETS = [
   { label: '25 / 5', focus: 25, break: 5 },
@@ -96,6 +97,7 @@ export default function FocusPage() {
     setSessionId(null);
     player.stop('focus-ambient');
     refetch();
+    celebrate({ text: t('focus.completed') });
   };
 
   const cancel = async () => {
@@ -116,11 +118,12 @@ export default function FocusPage() {
   const activeSoundIds = new Set(Object.keys(player.active));
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5">
+    <div className="relative isolate mx-auto max-w-2xl space-y-5">
+      <PageBackdrop variant="rings" />
       <h1 className="section-title">{t('focus.title')}</h1>
 
       <Card className="text-center">
-        <div className="relative mx-auto mb-4 h-44 w-44">
+        <div className="relative mx-auto mb-4 h-44 w-44 ring-glow">
           <div className="absolute inset-0 rounded-full border-8 border-line" />
           <div
             className="absolute inset-0 rounded-full border-8 border-brand-accent transition-all duration-1000"

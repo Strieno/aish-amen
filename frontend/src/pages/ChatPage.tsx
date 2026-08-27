@@ -36,6 +36,7 @@ import SpeakButton from '../components/SpeakButton';
 import LiveVoicePanel from '../components/LiveVoicePanel';
 import { playNotify, playSend } from '../lib/sound';
 import { primeSpeechPlayback, speakAutomatically, stopSpeaking } from '../lib/speech';
+import { PageBackdrop } from '../components/visualizations';
 
 function friendlyModelName(model: AiModel, lang: string): string {
   const explicit = model.display_name?.trim();
@@ -486,7 +487,8 @@ export default function ChatPage() {
   }, [loadMessages, refetchConvs]);
 
   return (
-    <div className="flex min-h-[calc(100dvh-9rem)] flex-col md:flex-row md:gap-4 lg:min-h-[calc(100dvh-8rem)]">
+    <div className="relative isolate flex min-h-[calc(100dvh-9rem)] flex-col md:flex-row md:gap-4 lg:min-h-[calc(100dvh-8rem)]">
+      <PageBackdrop variant="breath" />
       {/* ======= Conversations sidebar ======= */}
       <aside className="mb-4 w-full shrink-0 md:mb-0 md:w-72">
         <div className="flex gap-2">

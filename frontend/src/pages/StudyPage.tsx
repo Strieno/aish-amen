@@ -8,6 +8,22 @@ import { Badge, Button, Card, EmptyState, Field, Modal, Select, Spinner } from '
 import { useAiAction } from '../lib/useAiAction';
 import AiResultBox from '../components/AiResultBox';
 import RelatedPanel from '../components/RelatedPanel';
+import { PageBackdrop } from '../components/visualizations';
+
+function StudyBookArt({ className = '' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 96 64" className={className} role="img" aria-label="كتاب مفتوح">
+      <path d="M48 14 C 40 8, 26 8, 14 12 L14 52 C 28 46, 40 48, 48 56 C 56 48, 68 46, 82 52 L82 12 C 70 8, 56 8, 48 14 Z" fill="rgb(var(--brand-soft))" stroke="rgb(var(--brand) / 0.5)" strokeWidth="1.5" />
+      <path d="M48 16 L48 54" stroke="rgb(var(--brand) / 0.5)" strokeWidth="1.5" />
+      {[22, 34].map((x, i) => (
+        <path key={i} d={`M${x} 22 Q ${x + 6} 26 ${x} 30`} fill="none" stroke="rgb(var(--brand-accent) / 0.8)" strokeWidth="1.4" />
+      ))}
+      {[60, 72].map((x, i) => (
+        <path key={i} d={`M${x} 22 Q ${x - 6} 26 ${x} 30`} fill="none" stroke="rgb(var(--brand-accent) / 0.8)" strokeWidth="1.4" />
+      ))}
+    </svg>
+  );
+}
 
 export default function StudyPage() {
   const t = useT();
@@ -53,7 +69,8 @@ export default function StudyPage() {
   const activeCourse = selected?.id ? detail : null;
 
   return (
-    <div className="space-y-4">
+    <div className="relative isolate space-y-4">
+      <PageBackdrop variant="study" />
       <div className="flex items-center justify-between">
         <h1 className="section-title">{t('study.title')}</h1>
         <Button onClick={() => setShowCourse(true)}>
@@ -64,7 +81,7 @@ export default function StudyPage() {
       {loading ? (
         <Spinner className="mx-auto mt-8 block h-7 w-7" />
       ) : (courses || []).length === 0 ? (
-        <EmptyState text={t('study.noCourses')} />
+        <EmptyState text={t('study.noCourses')} art={<StudyBookArt />} />
       ) : (
         <div className="grid gap-4 md:grid-cols-[240px_1fr]">
           {/* Courses */}

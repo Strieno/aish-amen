@@ -333,6 +333,10 @@ const ar: Dict = {
 'today.checkin': 'تسجيل الحالة',
 'today.suggestion': 'توليد اقتراح...',
 'today.journalPrompt': 'دوّن يومك',
+'today.lifePulse': 'نبض اليوم',
+'today.weekMap': 'خريطة أسبوعك',
+'today.garden': 'حديقة العيش',
+'today.rings': 'حلقات التقدم',
 
 'chat.title': 'المحادثة',
 'chat.newChat': 'محادثة جديدة',
@@ -764,6 +768,10 @@ const en: Dict = {
 'today.checkin': 'Check in',
 'today.suggestion': 'Generating suggestion...',
 'today.journalPrompt': 'Journal your day',
+'today.lifePulse': 'Life pulse',
+'today.weekMap': 'Your week map',
+'today.garden': 'Living garden',
+'today.rings': 'Progress rings',
 
 'chat.title': 'Chat',
 'chat.newChat': 'New chat',
