@@ -8,6 +8,7 @@ import AiAssistantPanel from './components/AiAssistantPanel';
 import SmartContextPanel from './components/SmartContextPanel';
 import QuickCapture from './components/QuickCapture';
 import AmbientBackground from './components/AmbientBackground';
+import ErrorBoundary from './components/ErrorBoundary';
 import { initUiSounds, setUiSoundsEnabled, quietHoursActive } from './lib/sound';
 import { useAppStore } from './lib/app-store';
 
@@ -41,7 +42,9 @@ export default function App() {
         <Header onOpenSmart={() => setSmartOpen(true)} onOpenQuick={() => setQuickOpen(true)} />
         <main className="flex-1 overflow-y-auto">
           <div className="mx-auto w-full max-w-4xl px-4 pb-28 pt-6 md:px-8 lg:pb-10">
-            <Outlet />
+            <ErrorBoundary>
+              <Outlet />
+            </ErrorBoundary>
           </div>
         </main>
       </div>

@@ -5,6 +5,48 @@ import { useI18nStore } from './i18n';
 export type ThemeMode = 'light' | 'dark' | 'system';
 export type Accent = 'green' | 'midnight' | 'warm' | 'contrast';
 
+export interface AudioSettings {
+  uiSounds: boolean;
+  ttsEnabled: boolean;
+  speechRate: number;
+  voiceLang: string;
+  ttsEngine: string;
+  ttsProviderId: string;
+  ttsModel: string;
+  ttsVoice: string;
+  ttsVoiceEdge: string;
+}
+
+export const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
+  uiSounds: true,
+  ttsEnabled: true,
+  speechRate: 1,
+  voiceLang: 'auto',
+  ttsEngine: 'auto',
+  ttsProviderId: '',
+  ttsModel: 'gpt-4o-mini-tts',
+  ttsVoice: 'auto',
+  ttsVoiceEdge: 'auto',
+};
+
+export function normalizeAudioSettings(value: unknown): AudioSettings {
+  const raw = value && typeof value === 'object' ? value as Partial<AudioSettings> : {};
+  const speechRate = Number(raw.speechRate);
+  return {
+    ...DEFAULT_AUDIO_SETTINGS,
+    ...raw,
+    uiSounds: raw.uiSounds !== false,
+    ttsEnabled: raw.ttsEnabled !== false,
+    speechRate: Number.isFinite(speechRate) ? Math.min(1.8, Math.max(0.6, speechRate)) : DEFAULT_AUDIO_SETTINGS.speechRate,
+    voiceLang: typeof raw.voiceLang === 'string' ? raw.voiceLang : DEFAULT_AUDIO_SETTINGS.voiceLang,
+    ttsEngine: typeof raw.ttsEngine === 'string' ? raw.ttsEngine : DEFAULT_AUDIO_SETTINGS.ttsEngine,
+    ttsProviderId: typeof raw.ttsProviderId === 'string' ? raw.ttsProviderId : DEFAULT_AUDIO_SETTINGS.ttsProviderId,
+    ttsModel: typeof raw.ttsModel === 'string' && raw.ttsModel ? raw.ttsModel : DEFAULT_AUDIO_SETTINGS.ttsModel,
+    ttsVoice: typeof raw.ttsVoice === 'string' ? raw.ttsVoice : DEFAULT_AUDIO_SETTINGS.ttsVoice,
+    ttsVoiceEdge: typeof raw.ttsVoiceEdge === 'string' ? raw.ttsVoiceEdge : DEFAULT_AUDIO_SETTINGS.ttsVoiceEdge,
+  };
+}
+
 interface Settings {
   language: string;
   theme: string;
@@ -23,17 +65,7 @@ interface Settings {
     modelParams?: Record<string, unknown>;
   };
   privacy: { maxPrivacy: boolean; blockCloud: boolean; analytics: boolean };
-  audio?: {
-    uiSounds: boolean;
-    ttsEnabled: boolean;
-    speechRate: number;
-    voiceLang: string;
-    ttsEngine: string;
-    ttsProviderId: string;
-    ttsModel: string;
-    ttsVoice: string;
-    ttsVoiceEdge: string;
-  };
+  audio: AudioSettings;
   simpleMode: string;
   quietHours?: { enabled: boolean; start: string; end: string; sound: boolean; spoken: boolean; visual: boolean };
   sidebarVisible: string[];
@@ -59,17 +91,7 @@ const defaultSettings: Settings = {
   userName: '',
   ai: {},
   privacy: { maxPrivacy: false, blockCloud: false, analytics: false },
-  audio: {
-    uiSounds: true,
-    ttsEnabled: true,
-    speechRate: 1,
-    voiceLang: 'auto',
-    ttsEngine: 'auto',
-    ttsProviderId: '',
-    ttsModel: 'gpt-4o-mini-tts',
-    ttsVoice: 'auto',
-    ttsVoiceEdge: 'auto',
-  },
+  audio: DEFAULT_AUDIO_SETTINGS,
   simpleMode: 'true',
   sidebarVisible: ['today', 'chat', 'safe', 'tasks', 'study', 'work', 'journal', 'goals', 'gratitude', 'memory', 'knowledge', 'audio', 'focus', 'insights', 'settings'],
 };
@@ -100,7 +122,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   loadSettings: async () => {
     try {
       const s = (await api.get<Settings>('/settings')) || {};
-      const merged: Settings = { ...defaultSettings, ...s };
+      const merged: Settings = { ...defaultSettings, ...s, audio: normalizeAudioSettings(s.audio) };
       set({ settings: merged, sidebarVisible: merged.sidebarVisible || defaultSettings.sidebarVisible });
       useI18nStore.getState().setLang(merged.language === 'en' ? 'en' : 'ar');
       document.documentElement.lang = merged.language === 'en' ? 'en' : 'ar';
@@ -115,7 +137,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   updateSettings: async (patch) => {
-    const next = { ...get().settings, ...patch };
+    const next = {
+      ...get().settings,
+      ...patch,
+      audio: patch.audio ? normalizeAudioSettings({ ...get().settings.audio, ...patch.audio }) : get().settings.audio,
+    };
     set({ settings: next });
     try {
       await api.put('/settings', patch);

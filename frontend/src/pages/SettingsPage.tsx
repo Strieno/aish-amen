@@ -26,7 +26,7 @@ import {
 import { api } from '../lib/api';
 import { useApi } from '../lib/useApi';
 import { useT } from '../lib/i18n';
-import { useAppStore, type Accent, type ThemeMode } from '../lib/app-store';
+import { normalizeAudioSettings, useAppStore, type Accent, type ThemeMode } from '../lib/app-store';
 import type { Assistant, AiModel, CloudAiStatus, Provider } from '../lib/types';
 import { Badge, Button, Card, Field, Modal, Select, Spinner, Toggle } from '../components/ui';
 import { useAuth } from '../cloud/AuthProvider';
@@ -161,17 +161,7 @@ function VoiceTab() {
   const lang = useAppStore((s) => s.settings.language);
   const settings = useAppStore((s) => s.settings);
   const update = useAppStore((s) => s.updateSettings);
-  const audio = settings.audio || {
-    uiSounds: true,
-    ttsEnabled: true,
-    speechRate: 1,
-    voiceLang: 'auto',
-    ttsEngine: 'auto',
-    ttsProviderId: '',
-    ttsModel: 'gpt-4o-mini-tts',
-    ttsVoice: 'auto',
-    ttsVoiceEdge: 'auto',
-  };
+  const audio = normalizeAudioSettings(settings.audio);
   const { data: providers } = useApi<Provider[]>('/providers');
   const [recording, setRecording] = useState(false);
   const [heard, setHeard] = useState('');

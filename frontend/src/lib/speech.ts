@@ -106,7 +106,7 @@ export function startRecognition(opts: {
 /* ============ Text-to-Speech ============ */
 
 import { api } from './api';
-import { useAppStore } from './app-store';
+import { DEFAULT_AUDIO_SETTINGS, useAppStore } from './app-store';
 
 export function ttsSupported(): boolean {
   return typeof window !== 'undefined' && 'speechSynthesis' in window;
@@ -238,14 +238,7 @@ export async function speak(opts: {
   onEnd?: () => void;
 }): Promise<SpeakResult> {
   const state = useAppStore.getState();
-  const audio = {
-    ttsEngine: 'auto',
-    ttsProviderId: '',
-    ttsModel: 'gpt-4o-mini-tts',
-    ttsVoice: 'auto',
-    ttsVoiceEdge: 'auto',
-    ...(state.settings.audio || {}),
-  };
+  const audio = { ...DEFAULT_AUDIO_SETTINGS, ...(state.settings.audio || {}) };
   const engine = audio.ttsEngine || 'auto';
   const maxPrivacy = state.settings.privacy?.maxPrivacy === true;
 
