@@ -85,7 +85,7 @@ export async function streamChat(
   handlers: {
     onStart?: (info: { conversation_id: string; model: string; provider: string }) => void;
     onDelta: (delta: string) => void;
-    onDone: (info: { content: string; partial: boolean; contextUsed?: unknown; generationMs?: number }) => void;
+    onDone: (info: { content: string; partial: boolean; warning?: string; model?: string; provider?: string; contextUsed?: unknown; generationMs?: number }) => void;
     onError: (message: string) => void;
     signal?: AbortSignal;
   },
@@ -107,23 +107,24 @@ export async function streamChat(
     signal: handlers.signal,
   });
   if (!res.ok || !res.body) {
-    const text = await res.text().catch(() => '');
-    handlers.onError(text || `HTTP ${res.status}`);
+    let message = `تعذر الاتصال بالمساعد (HTTP ${res.status}).`;
+    try {
+      const text = await res.text();
+      const parsed = JSON.parse(text);
+      message = String(parsed?.error || parsed?.message || message);
+    } catch { /* keep the friendly fallback */ }
+    handlers.onError(message);
     return;
   }
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buf = '';
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buf += decoder.decode(value, { stream: true });
-    const events = buf.split('\n\n');
-    buf = events.pop() || '';
+  let terminalEvent = false;
+  const consume = (events: string[]) => {
     for (const ev of events) {
-      const lines = ev.split('\n');
-      const evName = lines[0].replace('event: ', '').trim();
-      const dataLine = lines.find((l) => l.startsWith('data: '))?.slice(6) || '';
+      const lines = ev.split(/\r?\n/);
+      const evName = lines.find((line) => line.startsWith('event:'))?.slice(6).trim() || 'message';
+      const dataLine = lines.filter((line) => line.startsWith('data:')).map((line) => line.slice(5).trim()).join('\n');
       let data: Record<string, unknown> = {};
       try {
         data = dataLine ? JSON.parse(dataLine) : {};
@@ -133,11 +134,38 @@ export async function streamChat(
       } else if (evName === 'delta') {
         handlers.onDelta(String(data.delta || ''));
       } else if (evName === 'done') {
-        handlers.onDone({ content: String(data.content || ''), partial: !!data.partial, contextUsed: data.contextUsed, generationMs: data.generationMs as number });
+        terminalEvent = true;
+        handlers.onDone({
+          content: String(data.content || ''),
+          partial: !!data.partial,
+          warning: data.warning ? String(data.warning) : undefined,
+          model: data.model ? String(data.model) : undefined,
+          provider: data.provider ? String(data.provider) : undefined,
+          contextUsed: data.contextUsed,
+          generationMs: data.generationMs as number,
+        });
       } else if (evName === 'error') {
+        terminalEvent = true;
         handlers.onError(String(data.message || 'خطأ غير معروف'));
       }
     }
+  };
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true }).replace(/\r\n/g, '\n');
+      const events = buf.split('\n\n');
+      buf = events.pop() || '';
+      consume(events);
+    }
+    buf += decoder.decode().replace(/\r\n/g, '\n');
+    if (buf.trim()) consume([buf]);
+    if (!terminalEvent && !handlers.signal?.aborted) {
+      handlers.onError('انقطع الاتصال قبل اكتمال الرد. يمكنك إعادة المحاولة دون فقدان رسالتك.');
+    }
+  } finally {
+    reader.releaseLock();
   }
 }
 

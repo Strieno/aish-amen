@@ -15,14 +15,23 @@ const repo = (table: string, prefix = '') => {
 
 const today = () => new Date().toISOString().slice(0, 10);
 const now = () => new Date().toISOString();
-const CLOUD_DEEPSEEK_PROVIDER = {
-  id: 'prov-deepseek-cloud', type: 'openai-compatible', name: 'DeepSeek Cloud',
-  base_url: 'Vercel secure proxy', embedding_model: null, timeout_ms: 120000,
-  is_primary: true, has_api_key: true,
-};
-const CLOUD_DEEPSEEK_MODELS = [
-  { id: 'am-deepseek-v4-flash', provider_id: 'prov-deepseek-cloud', model_id: 'deepseek-v4-flash', display_name: 'DeepSeek V4 Flash', context_limit: null, capabilities: ['chat', 'stream'], last_seen: null },
-  { id: 'am-deepseek-v4-pro', provider_id: 'prov-deepseek-cloud', model_id: 'deepseek-v4-pro', display_name: 'DeepSeek V4 Pro', context_limit: null, capabilities: ['chat', 'stream'], last_seen: null },
+const CLOUD_PROVIDERS = [
+  {
+    id: 'prov-deepseek-cloud', type: 'openai-compatible', name: 'DeepSeek Cloud',
+    base_url: 'Vercel secure proxy', embedding_model: null, timeout_ms: 120000,
+    is_primary: false, has_api_key: true,
+  },
+  {
+    id: 'prov-openai-cloud', type: 'openai-compatible', name: 'OpenAI Cloud',
+    base_url: 'Vercel secure proxy', embedding_model: null, timeout_ms: 120000,
+    is_primary: false, has_api_key: true,
+  },
+];
+const CLOUD_MODELS = [
+  { id: 'am-deepseek-chat', provider_id: 'prov-deepseek-cloud', model_id: 'deepseek-chat', display_name: 'DeepSeek Chat', context_limit: null, capabilities: ['chat', 'stream'], last_seen: null },
+  { id: 'am-deepseek-reasoner', provider_id: 'prov-deepseek-cloud', model_id: 'deepseek-reasoner', display_name: 'DeepSeek Reasoner', context_limit: null, capabilities: ['chat', 'stream', 'reasoning'], last_seen: null },
+  { id: 'am-openai-gpt-5-6-luna', provider_id: 'prov-openai-cloud', model_id: 'gpt-5.6-luna', display_name: 'GPT-5.6 Luna', context_limit: null, capabilities: ['chat', 'stream', 'reasoning'], last_seen: null },
+  { id: 'am-openai-gpt-5-6-terra', provider_id: 'prov-openai-cloud', model_id: 'gpt-5.6-terra', display_name: 'GPT-5.6 Terra', context_limit: null, capabilities: ['chat', 'stream', 'reasoning'], last_seen: null },
 ];
 const asObject = (value: unknown) => (value && typeof value === 'object' ? value as Record<string, unknown> : {});
 const stripUser = (row: Record<string, unknown>) => {
@@ -464,8 +473,8 @@ async function importCloudConversations(input: Record<string, unknown>) {
     const conversation = await repo('conversations', 'conv-').create({
       title: String(item.title || 'محادثة مستوردة').slice(0, 120),
       assistant_id: null,
-      provider_id: CLOUD_DEEPSEEK_PROVIDER.id,
-      model: CLOUD_DEEPSEEK_MODELS[0].model_id,
+      provider_id: CLOUD_PROVIDERS[0].id,
+      model: CLOUD_MODELS[0].model_id,
       folder: item.folder || null,
       pinned: false,
       tags: Array.isArray(item.tags) ? item.tags.slice(0, 20) : [],
@@ -704,9 +713,9 @@ export async function tryCloudRequest(path: string, method: Method, input?: unkn
 
   if (route === '/assistants' && method === 'GET') {
     const rows = await repo('assistants').list({}, { order: 'created_at' });
-    return { handled: true, data: rows.length ? rows : [{ id: 'assistant-cloud-general', name: 'المساعد العام', slug: 'general', description: 'مساعد عيش آمن السحابي', system_prompt: null, model: 'deepseek-v4-flash', provider_id: 'prov-deepseek-cloud', temperature: 0.6, context_limit: null, memory_permissions: {}, tool_permissions: [], voice: null, response_style: 'balanced', knowledge_base_ids: [], is_default: true }] };
+    return { handled: true, data: rows.length ? rows : [{ id: 'assistant-cloud-general', name: 'المساعد العام', slug: 'general', description: 'مساعد عيش آمن السحابي', system_prompt: null, model: 'deepseek-chat', provider_id: 'prov-deepseek-cloud', temperature: 0.6, context_limit: null, memory_permissions: {}, tool_permissions: [], voice: null, response_style: 'balanced', knowledge_base_ids: [], is_default: true }] };
   }
-  if (route === '/models' && method === 'GET') return { handled: true, data: CLOUD_DEEPSEEK_MODELS };
+  if (route === '/models' && method === 'GET') return { handled: true, data: CLOUD_MODELS };
   if (route === '/folders' && method === 'GET') { const [rows, conversations] = await Promise.all([repo('conversation_folders').list(), repo('conversations').list()]); return { handled: true, data: rows.map((row) => ({ ...row, count: conversations.filter((item) => item.folder === row.name).length })) }; }
   if (route === '/folders' && method === 'POST') return { handled: true, data: await repo('conversation_folders', 'folder-').create({ name: body.name || 'مجلد', color: body.color || null }) };
   match = route.match(/^\/folders\/([^/]+)$/);
@@ -736,7 +745,7 @@ export async function tryCloudRequest(path: string, method: Method, input?: unkn
   if (route === '/ai/context-modes' && method === 'GET') return { handled: true, data: ['general', 'university', 'work', 'safe', 'reflection', 'planning'] };
   if (route === '/events' && method === 'GET') return { handled: true, data: await repo('activity_events').list({}, { order: 'created_at', ascending: false, limit: Number(url.searchParams.get('limit') || 30) }) };
   if (route === '/audio/presets' && method === 'GET') return { handled: true, data: await repo('audio_presets').list({}, { order: 'created_at', ascending: false }) };
-  if (route === '/providers' && method === 'GET') return { handled: true, data: [CLOUD_DEEPSEEK_PROVIDER] };
+  if (route === '/providers' && method === 'GET') return { handled: true, data: CLOUD_PROVIDERS };
   if (route === '/providers/primary' && method === 'POST') return { handled: true, data: { ok: true } };
   // /ai/status and /providers/:id/test intentionally go through the Vercel AI backend.
   if (route === '/backups' && method === 'GET') return { handled: true, data: [] };

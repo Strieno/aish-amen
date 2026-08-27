@@ -4,10 +4,11 @@ import { Bot, Send, Sparkles, Square, X } from 'lucide-react';
 import { api, streamChat } from '../lib/api';
 import { useT } from '../lib/i18n';
 import { useAppStore } from '../lib/app-store';
+import type { CloudAiStatus } from '../lib/types';
 import Markdown from './Markdown';
 import { Spinner } from './ui';
 
-type AiStatus = 'checking' | 'online' | 'offline';
+type AiStatus = 'checking' | 'online' | 'ready' | 'offline' | 'blocked';
 
 function pageFromPath(path: string): string {
   const map: Record<string, string> = {
@@ -64,9 +65,13 @@ export default function AiAssistantPanel() {
   const checkStatus = async () => {
     setStatus('checking');
     try {
-      const r = await api.get<{ providers: { status: string }[] }>('/ai/status');
-      const ok = r.providers.some((p) => p.status === 'connected');
-      setStatus(ok ? 'online' : 'offline');
+      const r = await api.get<CloudAiStatus>('/ai/status');
+      if (r.privacyBlocked || r.providers.some((provider) => provider.status === 'blocked')) setStatus('blocked');
+      else {
+        const online = r.providers.some((provider) => provider.status === 'connected' && provider.modelCount > 0);
+        const ready = r.providers.some((provider) => provider.status === 'configured' && provider.modelCount > 0);
+        setStatus(online ? 'online' : ready ? 'ready' : 'offline');
+      }
     } catch {
       setStatus('offline');
     }
@@ -90,13 +95,15 @@ export default function AiAssistantPanel() {
             acc += d;
             setStreamText(acc);
           },
-          onDone: () => {
+          onDone: (info) => {
             setStreamText('');
-            setHistory((h) => [...h, { role: 'assistant', content: acc }]);
+            const warning = info.partial ? `\n\n> ${info.warning || t('chat.partialWarning')}` : '';
+            setHistory((h) => [...h, { role: 'assistant', content: `${acc}${warning}` }]);
           },
           onError: (msg) => {
             setStreamText('');
-            setHistory((h) => [...h, { role: 'assistant', content: `**${msg}**` }]);
+            const partial = acc ? `${acc}\n\n> ${t('chat.partialWarning')}\n\n` : '';
+            setHistory((h) => [...h, { role: 'assistant', content: `${partial}**${msg}**` }]);
           },
           signal: abortRef.current.signal,
         },
@@ -115,6 +122,7 @@ export default function AiAssistantPanel() {
   const stop = () => {
     abortRef.current?.abort();
     setSending(false);
+    if (streamText) setHistory((h) => [...h, { role: 'assistant', content: `${streamText}\n\n> ${t('chat.stoppedWarning')}` }]);
     setStreamText('');
   };
 
@@ -123,7 +131,7 @@ export default function AiAssistantPanel() {
     .filter((s) => !s.startsWith('ai.sugg'));
 
   const statusDot =
-    status === 'online' ? 'bg-brand-accent' : status === 'offline' ? 'bg-danger' : 'bg-warn';
+    status === 'online' || status === 'ready' ? 'bg-brand-accent' : status === 'offline' ? 'bg-danger' : 'bg-warn';
 
   return (
     <>
@@ -159,7 +167,7 @@ export default function AiAssistantPanel() {
               <p className="text-sm font-bold text-ink">{t('ai.title')}</p>
               <p className="flex items-center gap-1.5 text-[11px] text-ink-faint">
                 <span className={`h-1.5 w-1.5 rounded-full ${statusDot}`} />
-                {status === 'online' ? t('ai.online') : status === 'offline' ? t('ai.offline') : t('ai.checking')}
+                {status === 'online' ? t('ai.online') : status === 'ready' ? t('ai.ready') : status === 'blocked' ? t('ai.blocked') : status === 'offline' ? t('ai.offline') : t('ai.checking')}
                 <span className="ms-1">• {t(`ai.page.${page}`)}</span>
               </p>
             </div>
@@ -218,10 +226,10 @@ export default function AiAssistantPanel() {
                 <Markdown content={streamText} />
               </div>
             )}
-            {!sending && status === 'offline' && (
+            {!sending && (status === 'offline' || status === 'blocked') && (
               <div className="rounded-xl border border-warn-border bg-warn-bg p-3 text-xs text-warn">
-                <p className="font-bold">{t('ai.noModel')}</p>
-                <p className="mt-1">{t('ai.noModelHint')}</p>
+                <p className="font-bold">{status === 'blocked' ? t('ai.blocked') : t('ai.noModel')}</p>
+                <p className="mt-1">{status === 'blocked' ? t('chat.aiPrivacyBlocked') : t('ai.noModelHint')}</p>
                 <Link to="/settings" className="mt-2 inline-block font-bold underline" onClick={() => setOpen(false)}>
                   {t('ai.setup')}
                 </Link>
@@ -238,7 +246,10 @@ export default function AiAssistantPanel() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
-                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') send();
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  send();
+                }
               }}
             />
             {sending ? (
@@ -246,7 +257,7 @@ export default function AiAssistantPanel() {
                 <Square className="h-4 w-4" />
               </button>
             ) : (
-              <button onClick={() => send()} className="btn-primary !p-2.5" disabled={!input.trim()} title={t('ai.ask')} aria-label={t('ai.ask')}>
+              <button onClick={() => send()} className="btn-primary !p-2.5" disabled={!input.trim() || status === 'offline' || status === 'blocked'} title={t('ai.ask')} aria-label={t('ai.ask')}>
                 <Send className="h-4 w-4" />
               </button>
             )}

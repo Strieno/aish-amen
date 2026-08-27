@@ -1,9 +1,35 @@
-import { DEEPSEEK_PROVIDER_ID, assertCloudAiAllowed, authContext, deepSeekConfigured } from '../cloud-ai';
+import { assertCloudAiAllowed, authContext, cloudProviderCatalog, resolveCloudSelection } from '../cloud-ai';
 export default async function handler(req: any, res: any) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
-  const ctx = await authContext(req);
+  let ctx;
+  try { ctx = await authContext(req); }
+  catch { return res.status(503).json({ error: 'تعذر التحقق من جلسة Supabase. حاول مرة أخرى.' }); }
   if (!ctx) return res.status(401).json({ error: 'Authentication required' });
-  try { await assertCloudAiAllowed(ctx); } catch { return res.json({ providers: [{ id: DEEPSEEK_PROVIDER_ID, status: 'blocked', modelCount: 0 }], cloud: true, privacyBlocked: true }); }
-  const connected = deepSeekConfigured();
-  return res.json({ providers: [{ id: DEEPSEEK_PROVIDER_ID, status: connected ? 'connected' : 'error', modelCount: 2 }], cloud: true });
+  const catalog = cloudProviderCatalog();
+  try {
+    await assertCloudAiAllowed(ctx);
+  } catch {
+    return res.json({
+      providers: catalog.map((provider) => ({ id: provider.id, name: provider.name, status: 'blocked', modelCount: 0, model: provider.defaultModel })),
+      cloud: true,
+      configured: catalog.some((provider) => provider.configured),
+      privacyBlocked: true,
+    });
+  }
+  const active = resolveCloudSelection();
+  return res.json({
+    providers: catalog.map((provider) => ({
+      id: provider.id,
+      name: provider.name,
+      status: provider.configured ? 'configured' : 'error',
+      modelCount: provider.configured ? provider.models.length : 0,
+      model: provider.defaultModel,
+      isPrimary: provider.id === active.providerId,
+    })),
+    cloud: true,
+    configured: catalog.some((provider) => provider.configured),
+    defaultProvider: active.providerId,
+    defaultModel: active.model,
+    privacyBlocked: false,
+  });
 }

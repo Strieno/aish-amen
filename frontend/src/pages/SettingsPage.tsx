@@ -24,7 +24,7 @@ import { api } from '../lib/api';
 import { useApi } from '../lib/useApi';
 import { useT } from '../lib/i18n';
 import { useAppStore, type Accent, type ThemeMode } from '../lib/app-store';
-import type { Assistant, AiModel, Provider } from '../lib/types';
+import type { Assistant, AiModel, CloudAiStatus, Provider } from '../lib/types';
 import { Badge, Button, Card, Field, Modal, Select, Spinner, Toggle } from '../components/ui';
 import { useAuth } from '../cloud/AuthProvider';
 import { useCloudStore } from '../cloud/store';
@@ -203,7 +203,7 @@ function AiTab() {
   const { data: providers, refetch: refetchProviders } = useApi<Provider[]>('/providers');
   const { data: models } = useApi<AiModel[]>('/models');
   const { data: assistants } = useApi<Assistant[]>('/assistants');
-  const { data: status, refetch: refetchStatus } = useApi<{ providers: { id: string; status: string; modelCount: number }[] }>('/ai/status');
+  const { data: status, refetch: refetchStatus } = useApi<CloudAiStatus>('/ai/status');
   const settings = useAppStore((s) => s.settings);
   const update = useAppStore((s) => s.updateSettings);
 
@@ -226,11 +226,16 @@ function AiTab() {
 
   const test = async (id: string) => {
     setTesting(id);
-    const r = await api.post<{ ok: boolean; message?: string; modelCount?: number; models?: AiModel[] }>(`/providers/${id}/test`);
-    setTestResult({ [id]: r });
-    setTesting(null);
-    refetchStatus();
-    refetchProviders();
+    try {
+      const r = await api.post<{ ok: boolean; message?: string; modelCount?: number; models?: AiModel[] }>(`/providers/${id}/test`);
+      setTestResult((current) => ({ ...current, [id]: r }));
+      refetchStatus();
+      refetchProviders();
+    } catch (error) {
+      setTestResult((current) => ({ ...current, [id]: { ok: false, message: error instanceof Error ? error.message : t('ai.error') } }));
+    } finally {
+      setTesting(null);
+    }
   };
 
   const setPrimary = async (id: string) => {
@@ -244,6 +249,12 @@ function AiTab() {
   };
 
   const defaultModel = settings.ai?.defaultModel || '';
+  const readyProviderIds = new Set((status?.providers || [])
+    .filter((provider) => provider.status === 'connected' || provider.status === 'configured')
+    .map((provider) => provider.id));
+  const availableModels = cloudConfigured && status?.providers?.length
+    ? (models || []).filter((model) => readyProviderIds.has(model.provider_id))
+    : (models || []);
 
   const perms = () =>
     (settings.ai as { permissions?: { read?: Record<string, boolean>; write?: Record<string, boolean> } }).permissions || {
@@ -265,15 +276,26 @@ function AiTab() {
       <SectionCard title={t('settings.aiStatus')} icon={Bot}>
         <div className="space-y-2">
           {(providers || []).map((p) => {
-            const st = status?.providers.find((x) => x.id === p.id)?.status || 'disconnected';
+            const providerStatus = status?.providers.find((x) => x.id === p.id);
+            const st = providerStatus?.status || 'disconnected';
+            const verified = testResult[p.id]?.ok === true;
+            const hasModels = Number(providerStatus?.modelCount || 0) > 0;
+            const statusLabel = verified
+              ? t('settings.verified')
+              : st === 'connected' || st === 'configured'
+                ? hasModels ? t('settings.configured') : t('settings.noModels')
+                : st === 'blocked'
+                  ? t('settings.privacyBlocked')
+                  : t('settings.notConfigured');
             return (
               <div key={p.id} className="flex flex-wrap items-center gap-3 rounded-xl bg-elevated px-3 py-2">
-                <span className={`h-2.5 w-2.5 rounded-full ${st === 'connected' ? 'bg-brand-accent' : st === 'error' ? 'bg-danger' : 'bg-ink-faint'}`} />
+                <span className={`h-2.5 w-2.5 rounded-full ${verified || ((st === 'connected' || st === 'configured') && hasModels) ? 'bg-brand-accent' : st === 'blocked' || (st === 'connected' && !hasModels) ? 'bg-warn' : st === 'error' ? 'bg-danger' : 'bg-ink-faint'}`} />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-bold text-ink">{p.name}</p>
-                  <p className="truncate text-xs text-ink-faint" dir="ltr">{p.base_url || '—'}</p>
+                  <p className="truncate text-xs text-ink-faint" dir="ltr">{providerStatus?.model || p.base_url || '—'}</p>
                 </div>
-                {p.is_primary && <Badge tone="brand">{t('settings.primary')}</Badge>}
+                <Badge tone={verified || ((st === 'connected' || st === 'configured') && hasModels) ? 'brand' : 'neutral'}>{statusLabel}</Badge>
+                {Boolean(cloudConfigured ? providerStatus?.isPrimary : p.is_primary) && <Badge tone="brand">{t('settings.primary')}</Badge>}
                 <Button variant="ghost" className="!px-3 !py-1.5 text-xs" onClick={() => test(p.id)} disabled={testing === p.id}>
                   {testing === p.id ? <Spinner className="h-3.5 w-3.5" /> : <TestTube className="h-3.5 w-3.5" />} {t('settings.test')}
                 </Button>
@@ -301,7 +323,7 @@ function AiTab() {
             </div>
           ))}
           {cloudConfigured ? (
-            <p className="rounded-xl bg-brand-soft px-3 py-2 text-xs font-semibold text-brand-dark">DeepSeek Cloud يعمل عبر Vercel؛ المفتاح لا يُرسل إلى المتصفح.</p>
+            <p className="rounded-xl bg-brand-soft px-3 py-2 text-xs font-semibold leading-6 text-brand-dark">{t('settings.cloudAiHint')}</p>
           ) : (
             <Button variant="ghost" onClick={() => setShowAdd(true)}><Plus className="h-4 w-4" /> {t('settings.addConnection')}</Button>
           )}
@@ -312,16 +334,16 @@ function AiTab() {
         <Field label={t('settings.defaultModel')}>
           <Select value={defaultModel} onChange={setDefaultModel}>
             <option value="">{t('common.none')}</option>
-            {(models || []).map((m) => (
+            {availableModels.map((m) => (
               <option key={m.id} value={m.model_id}>{m.display_name || m.model_id}</option>
             ))}
           </Select>
         </Field>
         <div className="mt-2 flex max-h-48 flex-wrap gap-1.5 overflow-y-auto">
-          {(models || []).map((m) => (
+          {availableModels.map((m) => (
             <span key={m.id} className="chip">{m.model_id}</span>
           ))}
-          {(models || []).length === 0 && <p className="text-sm text-ink-faint">—</p>}
+          {availableModels.length === 0 && <p className="text-sm text-ink-faint">{t('chat.noModelConfigured')}</p>}
         </div>
       </SectionCard>
 

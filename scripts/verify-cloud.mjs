@@ -8,6 +8,8 @@ const sql = read('supabase/migrations/202608260001_aishaman_cloud.sql');
 const env = read('frontend/.env.example');
 const vercel = JSON.parse(read('vercel.json'));
 const client = read('frontend/src/cloud/client.ts');
+const ai = read('serverless/cloud-ai.ts');
+const bridge = read('frontend/src/cloud/bridge.ts');
 
 const privateTables = [
   'profiles','user_settings','ai_provider_profiles','ai_models','assistants','conversation_folders',
@@ -34,6 +36,11 @@ if (!sql.includes('supabase_realtime')) failures.push('Realtime publication miss
 if (!env.includes('VITE_SUPABASE_URL') || !env.includes('VITE_SUPABASE_PUBLISHABLE_KEY')) failures.push('required env variables missing');
 if (/service[_-]?role/i.test(client) || /OPENAI_API_KEY/.test(client)) failures.push('server secret reference found in browser client');
 if (vercel.outputDirectory !== 'frontend/dist') failures.push('unexpected Vercel output directory');
+if (!ai.includes('/auth/v1/user')) failures.push('cloud AI does not verify Supabase JWTs');
+if (!ai.includes("'deepseek-chat'")) failures.push('stable DeepSeek default model is missing');
+if (!ai.includes("'/responses'")) failures.push('OpenAI Responses API adapter is missing');
+if (/deepseek-v4-(?:flash|pro)/.test(ai + bridge)) failures.push('obsolete DeepSeek model identifier remains');
+if (!read('.env.example').includes('AI_PROVIDER=')) failures.push('cloud AI provider env documentation missing');
 
 if (failures.length) {
   console.error(`Cloud verification failed:\n- ${failures.join('\n- ')}`);

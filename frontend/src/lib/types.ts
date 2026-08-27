@@ -456,6 +456,25 @@ export interface AiModel {
   last_seen?: string | null;
 }
 
+export type AiProviderStatus = 'connected' | 'configured' | 'blocked' | 'error' | 'disconnected';
+
+export interface CloudAiStatus {
+  providers: Array<{
+    id: string;
+    name?: string;
+    status: AiProviderStatus;
+    modelCount: number;
+    model?: string;
+    isPrimary?: boolean;
+    is_primary?: boolean | number;
+  }>;
+  cloud?: boolean;
+  configured?: boolean;
+  privacyBlocked?: boolean;
+  defaultProvider?: string;
+  defaultModel?: string;
+}
+
 export interface FocusSession {
   id: string;
   started_at: string;

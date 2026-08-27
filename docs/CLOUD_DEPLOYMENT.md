@@ -41,9 +41,14 @@ Before upload, the untouched JSON export is saved in the browser's IndexedDB. Ro
 
 1. Import the repository into Vercel with the repository root as the project root.
 2. `vercel.json` supplies the install command, build command, output folder, and baseline security headers. The app uses hash routing, so direct route refreshes do not need a server rewrite.
-3. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` to Production, Preview, and Development as appropriate.
-4. Deploy, then add the final Vercel URL to Supabase Authentication redirect URLs.
-5. Open the deployed app on a phone and choose **Add to Home Screen**. The generated service worker caches the app shell; user records are cached separately in IndexedDB.
+3. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` to Production, Preview, and Development as appropriate. Add the same values as server-side `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` so AI routes can validate every JWT without trusting browser-supplied service coordinates.
+4. Configure at least one server-side AI provider:
+   - DeepSeek: `AI_PROVIDER=deepseek`, `DEEPSEEK_API_KEY`, and optionally `DEEPSEEK_MODEL` (defaults to `deepseek-chat`).
+   - OpenAI: `AI_PROVIDER=openai`, `OPENAI_API_KEY`, and optionally `OPENAI_MODEL` (defaults to `gpt-5.6-luna`). OpenAI requests use the Responses API.
+   - If both keys exist, `AI_PROVIDER` selects the default; users can select an available provider/model in chat.
+5. Deploy, open **Settings → AI**, and run **Test connection**. A configured badge only means the environment variable exists; the test performs a real provider request.
+6. Add the final Vercel URL to Supabase Authentication redirect URLs.
+7. Open the deployed app on a phone and choose **Add to Home Screen**. The generated service worker caches the app shell; user records are cached separately in IndexedDB.
 
 ## 5. Offline and conflict behavior
 
@@ -56,9 +61,9 @@ Before upload, the untouched JSON export is saved in the browser's IndexedDB. Ro
 
 ## 6. AI backend boundary
 
-OpenAI/Ollama keys are intentionally not written to Supabase from browser code. The existing Express backend remains the trusted place for provider secrets and local knowledge/audio processing. `VITE_API_BASE_URL` can point to that backend while developing locally.
+AI keys are intentionally not written to Supabase or browser code. Vercel functions keep provider secrets server-side, validate the Supabase JWT with Supabase Auth on every AI request, and access user data through the same signed token so RLS remains authoritative. Browser-provided Supabase URLs/keys are ignored in production to prevent requests from being redirected to an untrusted host.
 
-Do not publish the current SQLite backend as a shared public service: its local database is single-owner and its existing routes are not multi-tenant. A future hosted AI backend must validate the Supabase JWT on every request and use the user's token/RLS context (or an isolated per-user store) before it can safely be exposed. Until then, cloud CRUD/PWA works on every device; advanced AI and local-file processing require the trusted local backend.
+The Express + SQLite backend remains the trusted path for local Ollama/LM Studio and local file/audio processing. Do not publish it as a shared public service: its database is single-owner and its routes are not multi-tenant. `VITE_API_BASE_URL` may point to it during local development.
 
 ## 7. Security checklist
 

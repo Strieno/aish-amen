@@ -1,15 +1,23 @@
-import { DEEPSEEK_PROVIDER_ID, assertCloudAiAllowed, authContext, deepSeekConfigured, generateText } from '../cloud-ai';
+import { assertCloudAiAllowed, authContext, cloudProviderCatalog, generateText, resolveCloudSelection } from '../cloud-ai';
 export const config = { maxDuration: 20 };
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  const ctx = await authContext(req);
+  let ctx;
+  try { ctx = await authContext(req); }
+  catch { return res.status(503).json({ ok: false, message: 'تعذر التحقق من جلسة Supabase. حاول مرة أخرى.' }); }
   if (!ctx) return res.status(401).json({ error: 'Authentication required' });
   try { await assertCloudAiAllowed(ctx); } catch (error) { return res.json({ ok: false, message: error instanceof Error ? error.message : 'Cloud AI blocked' }); }
-  if (String(req.query?.id || '') !== DEEPSEEK_PROVIDER_ID) return res.status(404).json({ ok: false, message: 'Provider not available in cloud mode' });
-  if (!deepSeekConfigured()) return res.json({ ok: false, message: 'DEEPSEEK_API_KEY غير موجود في Vercel' });
+  const requestedId = String(req.query?.id || '');
+  const configured = cloudProviderCatalog().find((provider) => provider.id === requestedId);
+  if (!configured) return res.status(404).json({ ok: false, message: 'مزود الذكاء الاصطناعي غير متاح في الوضع السحابي.' });
+  if (!configured.configured) return res.json({ ok: false, message: `أضف ${configured.keyName} في Vercel ثم أعد النشر.` });
   try {
-    const result = await generateText([{ role: 'user', content: 'Reply only with OK' }], { maxTokens: 4, temperature: 0 });
-    return res.json({ ok: Boolean(result.content), message: 'DeepSeek Cloud متصل', modelCount: 2 });
+    const selection = resolveCloudSelection(requestedId);
+    const result = await generateText([
+      { role: 'system', content: 'هذا اختبار اتصال. أجب بكلمة واحدة فقط: متصل' },
+      { role: 'user', content: 'اختبار' },
+    ], { providerId: requestedId, model: selection.model, maxTokens: 20, temperature: 0, timeoutMs: 20000 });
+    return res.json({ ok: Boolean(result.content), message: `متصل فعليًا عبر ${configured.name}`, model: result.model, modelCount: configured.models.length });
   } catch (error) {
     return res.json({ ok: false, message: error instanceof Error ? error.message : 'Connection failed' });
   }

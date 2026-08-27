@@ -1,14 +1,12 @@
 import {
-  DEEPSEEK_PROVIDER_ID,
   authContext,
   assistantPrompt,
   buildCloudContext,
   corsNoStore,
-  deepSeek,
   loadAssistant,
-  proxyDeepSeekStream,
-  selectedModel,
+  resolveCloudSelection,
   sendSse,
+  streamCloudText,
 } from '../cloud-ai';
 
 export const config = { maxDuration: 60 };
@@ -25,6 +23,10 @@ export default async function handler(req: any, res: any) {
     sendSse(res, 'error', { message: 'الرسالة مطلوبة' });
     return res.end();
   }
+  if (message.length > 12000) {
+    sendSse(res, 'error', { message: 'الرسالة طويلة جدًا. اختصرها إلى أقل من 12,000 حرف ثم حاول مجددًا.' });
+    return res.end();
+  }
 
   try {
     const ctx = await authContext(req);
@@ -34,30 +36,36 @@ export default async function handler(req: any, res: any) {
     }
     const assistant = await loadAssistant(ctx, req.body?.assistant_id, page);
     const context = await buildCloudContext(ctx, { message, mode: req.body?.mode || 'general', page });
-    const model = selectedModel(req.body?.model);
+    const selection = resolveCloudSelection(req.body?.provider_id, req.body?.model);
+    const model = selection.model;
+    const providerId = selection.providerId;
     const system = `${assistantPrompt(assistant, req.body?.mode || 'general', page)}\n\n# بيانات الصفحة والحياة ذات الصلة\n${context.text || 'لا توجد بيانات سياق متاحة بعد.'}`;
     const panelHistory = (Array.isArray(req.body?.history) ? req.body.history : [])
       .filter((item: any) => item && (item.role === 'user' || item.role === 'assistant') && typeof item.content === 'string')
       .slice(-12)
       .map((item: any) => ({ role: item.role, content: String(item.content).slice(0, 5000) }));
 
-    sendSse(res, 'start', { conversation_id: '', model, provider: DEEPSEEK_PROVIDER_ID });
+    sendSse(res, 'start', { conversation_id: '', model, provider: providerId });
     const started = Date.now();
-    const response = await deepSeek([
+    const result = await streamCloudText([
       { role: 'system', content: system },
       ...panelHistory,
       { role: 'user', content: message },
-    ], { model, stream: true, maxTokens: 1800 });
-
-    let full = '';
-    await proxyDeepSeekStream(response, (delta) => {
-      full += delta;
+    ], { providerId, model, maxTokens: 1800 }, (delta) => {
       sendSse(res, 'delta', { delta });
     });
-    sendSse(res, 'done', { content: full, partial: false, model, provider: DEEPSEEK_PROVIDER_ID, contextUsed: context.contextUsed, generationMs: Date.now() - started });
+    sendSse(res, 'done', {
+      content: result.content,
+      partial: result.partial,
+      warning: result.warning,
+      model: result.model,
+      provider: result.provider,
+      contextUsed: context.contextUsed,
+      generationMs: Date.now() - started,
+    });
     return res.end();
   } catch (error) {
-    sendSse(res, 'error', { message: error instanceof Error ? error.message : 'AI request failed' });
+    if (!res.writableEnded) sendSse(res, 'error', { message: error instanceof Error ? error.message : 'AI request failed' });
     return res.end();
   }
 }

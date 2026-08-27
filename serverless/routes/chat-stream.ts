@@ -1,18 +1,16 @@
 import {
-  DEEPSEEK_PROVIDER_ID,
   authContext,
   assistantPrompt,
   buildCloudContext,
   conversationHistory,
   corsNoStore,
-  deepSeek,
   ensureConversation,
   loadAssistant,
-  proxyDeepSeekStream,
+  resolveCloudSelection,
   sbInsert,
   sbUpdate,
-  selectedModel,
   sendSse,
+  streamCloudText,
   uid,
 } from '../cloud-ai';
 
@@ -29,6 +27,10 @@ export default async function handler(req: any, res: any) {
     sendSse(res, 'error', { message: 'المحتوى مطلوب' });
     return res.end();
   }
+  if (content.length > 12000) {
+    sendSse(res, 'error', { message: 'الرسالة طويلة جدًا. اختصرها إلى أقل من 12,000 حرف ثم حاول مجددًا.' });
+    return res.end();
+  }
 
   try {
     const ctx = await authContext(req);
@@ -38,13 +40,15 @@ export default async function handler(req: any, res: any) {
     }
 
     const regenerate = req.body?.regenerate === true;
-    const model = selectedModel(req.body?.model);
+    const selection = resolveCloudSelection(req.body?.provider_id, req.body?.model);
+    const model = selection.model;
+    const providerId = selection.providerId;
     const conversation = await ensureConversation(ctx, {
       conversationId: req.body?.conversation_id,
       content,
       assistantId: req.body?.assistant_id,
       model,
-      providerId: DEEPSEEK_PROVIDER_ID,
+      providerId,
       mode: req.body?.mode || 'general',
     });
     const assistant = await loadAssistant(ctx, req.body?.assistant_id);
@@ -68,42 +72,44 @@ export default async function handler(req: any, res: any) {
     });
     await sbUpdate(ctx, 'conversations', conversation.id, {
       assistant_id: req.body?.assistant_id || conversation.assistant_id || null,
-      provider_id: DEEPSEEK_PROVIDER_ID,
+      provider_id: providerId,
       model,
       mode: req.body?.mode || conversation.mode || 'general',
       updated_at: new Date().toISOString(),
     });
 
-    sendSse(res, 'start', { conversation_id: conversation.id, model, provider: DEEPSEEK_PROVIDER_ID });
+    sendSse(res, 'start', { conversation_id: conversation.id, model, provider: providerId });
 
     const started = Date.now();
-    const deepResponse = await deepSeek(messages, { model, stream: true, maxTokens: 1100 });
-    let full = '';
-    await proxyDeepSeekStream(deepResponse, (delta) => {
-      full += delta;
+    const result = await streamCloudText(messages, { providerId, model, maxTokens: 1400 }, (delta) => {
       sendSse(res, 'delta', { delta });
     });
+    const full = result.content;
 
     await sbInsert(ctx, 'messages', {
       id: uid('msg-'), conversation_id: conversation.id, parent_message_id: userMessage?.id || null,
-      role: 'assistant', content: full, model, provider: DEEPSEEK_PROVIDER_ID,
+      role: 'assistant', content: full, model: result.model, provider: result.provider,
       generation_ms: Date.now() - started,
-      metadata: { contextUsed: { ...context.contextUsed, historyMessages: history.length }, fallback: false },
+      metadata: { contextUsed: { ...context.contextUsed, historyMessages: history.length }, fallback: false, partial: result.partial },
     });
-    await sbUpdate(ctx, 'conversations', conversation.id, { updated_at: new Date().toISOString() });
+    await sbUpdate(ctx, 'conversations', conversation.id, {
+      provider_id: result.provider,
+      model: result.model,
+      updated_at: new Date().toISOString(),
+    });
 
     // Keep the interactive request fast on Vercel Hobby.
     // Automatic memory extraction should run as a separate follow-up action, not block the chat response.
 
     sendSse(res, 'done', {
-      content: full, partial: false, model, provider: DEEPSEEK_PROVIDER_ID,
+      content: full, partial: result.partial, warning: result.warning, model: result.model, provider: result.provider,
       contextUsed: { ...context.contextUsed, historyMessages: history.length },
       generationMs: Date.now() - started,
     });
     return res.end();
   } catch (error) {
     const message = error instanceof Error ? error.message : 'AI request failed';
-    sendSse(res, 'error', { message });
+    if (!res.writableEnded) sendSse(res, 'error', { message });
     return res.end();
   }
 }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   Copy,
   Eye,
@@ -26,7 +26,7 @@ import { api, streamChat } from '../lib/api';
 import { useApi } from '../lib/useApi';
 import { useT } from '../lib/i18n';
 import { useAppStore } from '../lib/app-store';
-import type { AiProposal, Assistant, AiModel, ChatMessage, ContextItem, ContextUsed, Conversation, ConversationExport, Folder, SearchResults } from '../lib/types';
+import type { AiProposal, Assistant, AiModel, ChatMessage, CloudAiStatus, ContextItem, ContextUsed, Conversation, ConversationExport, Folder, SearchResults } from '../lib/types';
 import Markdown from '../components/Markdown';
 import { Badge, Button, EmptyState, Modal, Select, Spinner } from '../components/ui';
 import EntityChip from '../components/EntityChip';
@@ -57,7 +57,11 @@ function friendlyModelName(model: AiModel, lang: string): string {
 // Provider model catalogs may contain embedding, image, audio, moderation,
 // realtime, and legacy completion models. Those cannot serve this chat UI.
 function isChatModel(model: AiModel): boolean {
-  return !/^(?:babbage|davinci|text-embedding|whisper|tts-|gpt-(?:audio|image|live|realtime|transcribe)|chatgpt-image|omni-moderation|sora-)/i.test(model.model_id);
+  if (/^(?:babbage|davinci|text-embedding|whisper|tts-|gpt-(?:audio|image|live|realtime|transcribe)|chatgpt-image|omni-moderation|sora-)/i.test(model.model_id)) return false;
+  const capabilities = (model.capabilities || []).map((capability) => capability.toLowerCase());
+  const embeddingOnly = capabilities.some((capability) => capability.includes('embedding'))
+    && !capabilities.some((capability) => /chat|completion|stream|text/.test(capability));
+  return !embeddingOnly;
 }
 
 export default function ChatPage() {
@@ -70,12 +74,15 @@ export default function ChatPage() {
   const { data: assistants } = useApi<Assistant[]>('/assistants');
   const { data: models } = useApi<AiModel[]>('/models');
   const { data: folders, refetch: refetchFolders } = useApi<Folder[]>('/folders');
+  const { data: aiStatus, refetch: refetchAiStatus } = useApi<CloudAiStatus>('/ai/status');
 
   const [conversationId, setConversationId] = useState<string | null>(convId);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [streamText, setStreamText] = useState('');
+  const [sendError, setSendError] = useState('');
+  const [lastPrompt, setLastPrompt] = useState('');
   const [assistantId, setAssistantId] = useState<string>('');
   const [modelKey, setModelKey] = useState<string>('');
   const [inspector, setInspector] = useState<ContextUsed | null>(null);
@@ -157,7 +164,16 @@ export default function ChatPage() {
     }
   }, [assistants, assistantId]);
 
-  const chatModels = useMemo(() => (models || []).filter(isChatModel), [models]);
+  const readyProviderIds = useMemo(() => new Set(
+    (aiStatus?.providers || [])
+      .filter((provider) => provider.status === 'connected' || provider.status === 'configured')
+      .map((provider) => provider.id),
+  ), [aiStatus]);
+  const chatModels = useMemo(() => {
+    const candidates = (models || []).filter(isChatModel);
+    if (!aiStatus?.providers?.length) return candidates;
+    return candidates.filter((model) => readyProviderIds.has(model.provider_id));
+  }, [aiStatus, models, readyProviderIds]);
   const selectedModel = useMemo(
     () => chatModels.find((item) => item.id === modelKey) || null,
     [chatModels, modelKey],
@@ -208,6 +224,7 @@ export default function ChatPage() {
     setConversationId(null);
     setMessages([]);
     setStreamText('');
+    setSendError('');
     setProposals([]);
     setLastUsedCtx([]);
     setPinnedCtx([]);
@@ -225,10 +242,12 @@ export default function ChatPage() {
     }
   };
 
-  const send = async (textOverride?: string) => {
+  const send = async (textOverride?: string, regenerateExisting = false, reuseUserMessage = false) => {
     const text = (textOverride ?? input).trim();
     if (!text || sending) return;
     setInput('');
+    setLastPrompt(text);
+    setSendError('');
     setSending(true);
     setStreamText('');
     setProposals([]);
@@ -242,7 +261,7 @@ export default function ChatPage() {
       content: text,
       created_at: new Date().toISOString(),
     };
-    setMessages((m) => [...m, userMsg]);
+    if (!regenerateExisting && !reuseUserMessage) setMessages((m) => [...m, userMsg]);
 
     let acc = '';
     try {
@@ -254,6 +273,7 @@ export default function ChatPage() {
           model: selectedModel?.model_id,
           provider_id: selectedModel?.provider_id,
           mode: mode || 'general',
+          regenerate: regenerateExisting,
         },
         {
           onStart: (info) => {
@@ -266,6 +286,7 @@ export default function ChatPage() {
           },
           onDone: async (info) => {
             setStreamText('');
+            setSendError(info.partial ? (info.warning || t('chat.partialWarning')) : '');
             if (info.contextUsed && typeof info.contextUsed === 'object') {
               const used = info.contextUsed as ContextUsed & { items?: ContextItem[] };
               setLastUsedCtx(used.items || []);
@@ -280,15 +301,15 @@ export default function ChatPage() {
             }
           },
           onError: (msg) => {
-            setStreamText(`**${msg}**`);
-            setTimeout(() => setStreamText(''), 5000);
+            setSendError(msg);
+            if (!acc) setStreamText('');
           },
           signal: abortRef.current.signal,
         },
       );
     } catch (error) {
       if (!(error instanceof Error && error.name === 'AbortError')) {
-        setStreamText(`**${error instanceof Error ? error.message : 'تعذر الاتصال بالمساعد'}**`);
+        setSendError(error instanceof Error ? error.message : t('chat.connectionError'));
       }
     } finally {
       setSending(false);
@@ -298,7 +319,7 @@ export default function ChatPage() {
   const stop = () => {
     abortRef.current?.abort();
     setSending(false);
-    setStreamText('');
+    setSendError(streamText ? t('chat.stoppedWarning') : '');
   };
 
   const updateConv = async (id: string, patch: Partial<Conversation>) => {
@@ -387,6 +408,8 @@ export default function ChatPage() {
 
     setMessages((current) => current.filter((item) => item.id !== m.id));
     await api.del(`/messages/${m.id}`);
+    setLastPrompt(previousUser.content);
+    setSendError('');
     setSending(true);
     setStreamText('');
     abortRef.current = new AbortController();
@@ -409,6 +432,7 @@ export default function ChatPage() {
           },
           onDone: async (info) => {
             setStreamText('');
+            setSendError(info.partial ? (info.warning || t('chat.partialWarning')) : '');
             if (info.contextUsed && typeof info.contextUsed === 'object') {
               const used = info.contextUsed as ContextUsed & { items?: ContextItem[] };
               setLastUsedCtx(used.items || []);
@@ -416,13 +440,16 @@ export default function ChatPage() {
             await loadMessages(conversationId);
             refetchConvs();
           },
-          onError: (msg) => setStreamText(`**${msg}**`),
+          onError: (msg) => {
+            setSendError(msg);
+            if (!acc) setStreamText('');
+          },
           signal: abortRef.current.signal,
         },
       );
     } catch (error) {
       if (!(error instanceof Error && error.name === 'AbortError')) {
-        setStreamText(`**${error instanceof Error ? error.message : 'تعذر إعادة التوليد'}**`);
+        setSendError(error instanceof Error ? error.message : t('chat.connectionError'));
       }
     } finally {
       setSending(false);
@@ -431,6 +458,13 @@ export default function ChatPage() {
   };
 
   const currentConv = convs?.find((c) => c.id === conversationId);
+  const aiReady = !aiStatus || (
+    chatModels.length > 0
+    && aiStatus.providers.some((provider) => (provider.status === 'connected' || provider.status === 'configured') && provider.modelCount > 0)
+  );
+  const aiBlocked = aiStatus?.privacyBlocked === true || aiStatus?.providers.some((provider) => provider.status === 'blocked') === true;
+  const activeProvider = aiStatus?.providers.find((provider) => provider.isPrimary || Boolean(provider.is_primary))
+    || aiStatus?.providers.find((provider) => (provider.status === 'connected' || provider.status === 'configured') && provider.modelCount > 0);
 
   return (
     <div className="flex min-h-[calc(100dvh-9rem)] flex-col md:flex-row md:gap-4 lg:min-h-[calc(100dvh-8rem)]">
@@ -537,6 +571,15 @@ export default function ChatPage() {
               ))}
             </select>
           </div>
+          <button
+            type="button"
+            onClick={() => refetchAiStatus()}
+            className={`chip cursor-pointer ${aiBlocked ? '!bg-warn-bg !text-warn' : aiReady ? '!bg-ok-bg !text-ok' : '!bg-danger-bg !text-danger'}`}
+            title={activeProvider?.model || activeProvider?.name}
+          >
+            <span className={`h-1.5 w-1.5 rounded-full ${aiBlocked ? 'bg-warn' : aiReady ? 'bg-ok' : 'bg-danger'}`} />
+            {aiBlocked ? t('ai.blocked') : aiReady ? (activeProvider?.name || t('ai.ready')) : t('ai.offline')}
+          </button>
           <div className="flex items-center gap-1">
             <label className="text-xs font-bold text-ink-faint">{t('chat.model')}</label>
             <select
@@ -545,7 +588,9 @@ export default function ChatPage() {
               onChange={(e) => setModelKey(e.target.value)}
               aria-label={t('chat.model')}
               title={selectedModel?.model_id}
+              disabled={!chatModels.length}
             >
+              {!chatModels.length && <option value="">{t('chat.noModelConfigured')}</option>}
               {chatModels.map((m) => (
                 <option key={m.id} value={m.id} title={m.model_id}>{friendlyModelName(m, lang)}</option>
               ))}
@@ -622,10 +667,10 @@ export default function ChatPage() {
             />
           ))}
           {streamText && (
-            <div className="max-w-[88%] rounded-bubble rounded-br-md border border-line bg-card p-4">
+            <div className="max-w-[88%] rounded-bubble rounded-br-md border border-line bg-card p-4" aria-live="polite">
               <div className="mb-1 flex items-center gap-1.5 text-brand-dark">
                 <Leaf className="h-3.5 w-3.5" />
-                <span className="text-xs font-bold">{t('chat.thinking')}</span>
+                <span className="text-xs font-bold">{sending ? t('chat.thinking') : t('chat.partialWarning')}</span>
               </div>
               <Markdown content={streamText} />
             </div>
@@ -651,6 +696,25 @@ export default function ChatPage() {
 
         {/* Input */}
         <div className="border-t border-line pt-3">
+          {(!aiReady || aiBlocked) && (
+            <div className="mb-2 flex flex-wrap items-center gap-2 rounded-xl border border-warn-border bg-warn-bg px-3 py-2 text-sm text-warn" role="status">
+              <span className="flex-1">{aiBlocked ? t('chat.aiPrivacyBlocked') : t('chat.aiNeedsSetup')}</span>
+              <Link to="/settings" className="font-bold underline">{t('chat.openSettings')}</Link>
+            </div>
+          )}
+          {sendError && (
+            <div className="mb-2 flex flex-wrap items-center gap-2 rounded-xl border border-danger-border bg-danger-bg px-3 py-2 text-sm text-danger" role="alert">
+              <div className="min-w-0 flex-1">
+                <p className="font-bold">{t('chat.connectionError')}</p>
+                <p className="mt-0.5 break-words text-xs">{sendError}</p>
+              </div>
+              {lastPrompt && (
+                <Button variant="ghost" className="!border-danger-border !px-3 !py-1.5 text-xs" onClick={() => send(lastPrompt, Boolean(conversationId), true)} disabled={sending}>
+                  <RefreshCw className="h-3.5 w-3.5" /> {t('chat.retryLast')}
+                </Button>
+              )}
+            </div>
+          )}
           <div className="flex items-end gap-2">
             <button className="btn-icon" title={t('chat.micUnavailable')} aria-label={t('chat.micUnavailable')} onClick={() => alert(t('chat.micUnavailable'))}>
               <Mic className="h-5 w-5" />
@@ -662,7 +726,10 @@ export default function ChatPage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
-                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') send();
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  send();
+                }
               }}
             />
             {sending ? (
@@ -670,11 +737,12 @@ export default function ChatPage() {
                 <Square className="h-4 w-4" /> {t('chat.stop')}
               </Button>
             ) : (
-              <Button onClick={() => send()}>
+              <Button onClick={() => send()} disabled={!input.trim() || !aiReady || aiBlocked}>
                 <Send className="h-4 w-4" /> {t('chat.send')}
               </Button>
             )}
           </div>
+          <p className="mt-1 px-1 text-[11px] text-ink-faint">{t('chat.enterHint')}</p>
         </div>
       </div>
 
