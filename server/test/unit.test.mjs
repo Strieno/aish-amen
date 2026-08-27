@@ -152,6 +152,28 @@ test('OpenAI provider maps token limits for modern GPT models', () => {
   assert.deepEqual(provider.normalizeOptions({ max_tokens: null, top_p: null }, 'gpt-4o-mini'), {});
 });
 
+test('OpenAI speech request uses tts-1 with Alloy by default', async (t) => {
+  let requestUrl = '';
+  let requestBody = null;
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    requestUrl = String(url);
+    requestBody = JSON.parse(String(options?.body || '{}'));
+    return new Response(new Uint8Array([73, 68, 51]), { status: 200, headers: { 'Content-Type': 'audio/mpeg' } });
+  });
+  const provider = new OpenAICompatibleProvider({
+    id: 'openai-speech-test',
+    name: 'OpenAI',
+    base_url: 'https://api.openai.com/v1',
+    api_key: 'test-key',
+  });
+  const audio = await provider.tts({ text: 'مرحبا' });
+  assert.equal(requestUrl, 'https://api.openai.com/v1/audio/speech');
+  assert.equal(requestBody.model, 'tts-1');
+  assert.equal(requestBody.voice, 'alloy');
+  assert.equal(requestBody.input, 'مرحبا');
+  assert.ok(audio.length > 0);
+});
+
 test('prompt engine builds modular prompt', () => {
   const { buildPrompt } = promptMod;
   const out = buildPrompt({
