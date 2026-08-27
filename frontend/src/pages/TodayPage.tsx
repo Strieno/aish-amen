@@ -11,6 +11,10 @@ import AiResultBox from '../components/AiResultBox';
 import { SafeHomeScene, CalmEmptyScene } from '../components/SceneArt';
 import SpeakButton from '../components/SpeakButton';
 import { SafeLivingOrb, LifePulse, WeeklyLifeMap } from '../components/visualizations';
+import NextActionsCard from '../components/gamification/NextActionsCard';
+import DiscoveriesCard from '../components/gamification/DiscoveriesCard';
+import SurpriseButton from '../components/gamification/SurpriseButton';
+import { useProgressStore } from '../components/gamification/progress-store';
 import { useAiAction } from '../lib/useAiAction';
 import { entityIcon, entityRoute } from '../lib/entity-utils';
 import { primeSpeechPlayback, speakAutomatically } from '../lib/speech';
@@ -45,6 +49,7 @@ export default function TodayPage() {
   const planDay = useAiAction('plan-day');
   const nextTask = useAiAction('next-task');
   const lastSpokenSuggestion = useRef('');
+  const progress = useProgressStore((s) => s.snapshot);
 
   const todayStr = new Date().toISOString().slice(0, 10);
 
@@ -150,6 +155,7 @@ export default function TodayPage() {
             <h1 className="mt-1 text-2xl font-extrabold text-ink md:text-3xl">{greeting(new Date().getHours(), lang)}</h1>
             <p className="mt-1 text-sm text-ink-soft">
               {lang === 'en' ? new Date().toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'long' }) : new Date().toLocaleDateString('ar', { weekday: 'long', day: 'numeric', month: 'long' })}
+              {progress ? ` • مستوى ${progress.level} • +${progress.xpToday} XP اليوم${progress.streaks.activity >= 3 ? ` • 🔥 ${progress.streaks.activity} أيام` : ''}` : ''}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <span
@@ -179,6 +185,9 @@ export default function TodayPage() {
               className="hidden sm:block"
             />
           </div>
+        </div>
+        <div className="relative z-10 -mt-1">
+          <SurpriseButton />
         </div>
       </div>
 
@@ -367,6 +376,12 @@ export default function TodayPage() {
           </div>
           <WeeklyLifeMap />
         </Card>
+      </div>
+
+      {/* What's next + discoveries */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <NextActionsCard />
+        <DiscoveriesCard />
       </div>
 
       {/* ======= Today Intelligence ======= */}

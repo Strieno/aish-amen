@@ -10,6 +10,8 @@ import QuickCapture from './components/QuickCapture';
 import AmbientBackground from './components/AmbientBackground';
 import ErrorBoundary from './components/ErrorBoundary';
 import CompletionBurst from './components/visualizations/CompletionBurst';
+import ProgressProvider from './components/gamification/ProgressProvider';
+import ProgressPanel from './components/gamification/ProgressPanel';
 import { initUiSounds, setUiSoundsEnabled, quietHoursActive } from './lib/sound';
 import { useAppStore } from './lib/app-store';
 
@@ -55,6 +57,8 @@ export default function App() {
       <SmartContextPanel open={smartOpen} onClose={() => setSmartOpen(false)} />
       <QuickCapture open={quickOpen} onClose={() => setQuickOpen(false)} />
       <CompletionBurst />
+      <ProgressProvider />
+      <ProgressPanel />
     </div>
   );
 }

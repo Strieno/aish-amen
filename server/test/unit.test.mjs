@@ -32,6 +32,9 @@ const compressorMod = await import('../src/services/context/compressor.js');
 const scorerMod = await import('../src/services/context/scorer.js');
 const contextBuilderMod = await import('../src/services/context-builder.js');
 const studyMod = await import('../src/services/study-engine.js');
+const progressMod = await import('../src/services/progress.js');
+const nextMod = await import('../src/services/next-actions.js');
+const discoveriesMod = await import('../src/services/discoveries.js');
 
 before(() => {
   dbMod.openDb();
@@ -477,4 +480,75 @@ test('Study OS: recommendations are explainable and exam-aware', () => {
   assert.ok(hit.reasons.some((reason) => /اختبار|يوم/.test(reason)), 'exam proximity appears in reasons');
   const momentum = studyMod.academicMomentum();
   assert.ok(typeof momentum.level === 'string' && momentum.level.length > 0);
+});
+
+/* ================= Gamification / Smart Experience ================= */
+
+test('Gamification: XP accumulates from activity and levels grow', () => {
+  const xpBefore = progressMod.computeXp();
+  const levelBefore = progressMod.levelFromXp(xpBefore);
+  dbMod.run(
+    'INSERT INTO activity_events(id, event_type, entity_type, entity_id, ts, summary) VALUES (?,?,?,?,?,?)',
+    'xp-task-1', 'TaskCompleted', 'task', 'xp-t1', new Date().toISOString(), 'مهمة تجربة',
+  );
+  dbMod.run(
+    'INSERT INTO activity_events(id, event_type, entity_type, entity_id, ts, summary) VALUES (?,?,?,?,?,?)',
+    'xp-focus-1', 'FocusSessionCompleted', 'focus_session', 'xp-f1', new Date().toISOString(), 'تركيز تجربة',
+  );
+  const xpAfter = progressMod.computeXp();
+  assert.ok(xpAfter >= xpBefore + 27, `expected +27 xp, got ${xpAfter - xpBefore}`);
+  assert.ok(progressMod.levelFromXp(xpAfter) >= levelBefore);
+  assert.ok(progressMod.xpForLevel(2) > progressMod.xpForLevel(1), 'higher levels cost more');
+});
+
+test('Gamification: first-task achievement unlocks and secrets stay hidden', () => {
+  dbMod.run('DELETE FROM achievements');
+  const newly = progressMod.checkAchievements();
+  const keys = newly.map((a) => a.key);
+  assert.ok(keys.includes('first-task'), 'first task exists → first-task unlocks');
+  assert.ok(keys.includes('memory-10') === false, 'memory-10 needs 10 memories');
+  const catalog = progressMod.achievementCatalog({ revealSecrets: false });
+  const secretLocked = catalog.find((a) => a.secret && !a.unlocked);
+  assert.equal(secretLocked?.title, '؟؟؟', 'locked secrets are hidden');
+  const unlocked = catalog.find((a) => a.key === 'first-task');
+  assert.equal(unlocked?.unlocked, true, 'unlocked achievement is visible');
+});
+
+test('Gamification: daily challenges reflect today progress and can be claimed once', () => {
+  const challenges = progressMod.todayChallenges();
+  assert.equal(challenges.length, 3, 'three daily challenges');
+  for (const c of challenges) {
+    assert.ok(c.target > 0 && c.progress >= 0, 'challenge has target/progress');
+  }
+  // Completing 3 tasks today → tasks-3 challenge complete (if present).
+  const today = new Date().toISOString().slice(0, 10);
+  dbMod.run("INSERT INTO tasks(id, title, status, completed_at, created_at, updated_at) VALUES (?,?,?,?,?,?)", 'ch-t1', 'مهمة تحدي 1', 'done', `${today}T10:00:00`, new Date().toISOString(), new Date().toISOString());
+  dbMod.run("INSERT INTO tasks(id, title, status, completed_at, created_at, updated_at) VALUES (?,?,?,?,?,?)", 'ch-t2', 'مهمة تحدي 2', 'done', `${today}T10:05:00`, new Date().toISOString(), new Date().toISOString());
+  dbMod.run("INSERT INTO tasks(id, title, status, completed_at, created_at, updated_at) VALUES (?,?,?,?,?,?)", 'ch-t3', 'مهمة تحدي 3', 'done', `${today}T10:10:00`, new Date().toISOString(), new Date().toISOString());
+  const after = progressMod.todayChallenges();
+  const tasksChallenge = after.find((c) => c.key === 'tasks-3');
+  if (tasksChallenge) {
+    const claim = progressMod.claimChallenge('tasks-3');
+    assert.equal(claim.ok, true, 'claimable when complete');
+    assert.equal(claim.first, true, 'first claim grants bonus');
+    const again = progressMod.claimChallenge('tasks-3');
+    assert.equal(again.first, false, 'second claim grants no bonus');
+  }
+});
+
+test('What\'s next? returns explainable actions', () => {
+  const actions = nextMod.whatsNext({ limit: 3 });
+  assert.ok(Array.isArray(actions) && actions.length <= 3);
+  for (const a of actions) {
+    assert.ok(a.title && a.reason, 'action has title + reason');
+    assert.ok(a.route, 'action has a route');
+  }
+});
+
+test('Discoveries return gentle correlational insights', () => {
+  const list = discoveriesMod.discoverInsights({ limit: 4 });
+  assert.ok(Array.isArray(list));
+  for (const d of list) {
+    assert.ok(d.title && d.text);
+  }
 });

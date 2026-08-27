@@ -4,6 +4,8 @@ import { useAppStore } from '../lib/app-store';
 import { useT } from '../lib/i18n';
 import { useAuth } from '../cloud/AuthProvider';
 import { useCloudStore } from '../cloud/store';
+import ProgressBadge from './gamification/ProgressBadge';
+import SurpriseButton from './gamification/SurpriseButton';
 
 export default function Header({ onOpenSmart, onOpenQuick }: { onOpenSmart: () => void; onOpenQuick: () => void }) {
   const t = useT();
@@ -33,7 +35,9 @@ export default function Header({ onOpenSmart, onOpenQuick }: { onOpenSmart: () =
           {now.toLocaleTimeString(settings.language === 'en' ? 'en' : 'ar', { hour: '2-digit', minute: '2-digit' })}
         </p>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 md:gap-3">
+        <ProgressBadge />
+        <SurpriseButton label={false} className="!hidden !px-2 sm:!inline-flex" />
         {cloudEnabled && (
           <Link
             to="/settings"

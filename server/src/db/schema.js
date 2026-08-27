@@ -513,6 +513,19 @@ export const DDL = [
     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
   )`,
 
+  `CREATE TABLE IF NOT EXISTS achievements (
+    id TEXT PRIMARY KEY,
+    unlocked_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS daily_challenges (
+    date TEXT NOT NULL,
+    challenge_key TEXT NOT NULL,
+    done INTEGER DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    PRIMARY KEY (date, challenge_key)
+  )`,
+
   `CREATE UNIQUE INDEX IF NOT EXISTS idx_checkins_date ON checkins(entry_date)`,
   `CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id, created_at)`,
   `CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status)`,

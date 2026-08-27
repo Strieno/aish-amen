@@ -570,3 +570,17 @@ html.dark.theme-warm {
   background: radial-gradient(80% 60% at 50% 0%, rgb(var(--brand-soft) / 0.7), transparent 70%);
   animation: breathe 7s ease-in-out infinite;
 }
+
+/* ============ Cinematic achievement moments ============ */
+@keyframes cinematicVignette {
+  0% { opacity: 0; }
+  15% { opacity: 1; }
+  75% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes cinematicRise {
+  0% { opacity: 0; transform: scale(0.86) translateY(18px); }
+  20% { opacity: 1; transform: scale(1) translateY(0); }
+  80% { opacity: 1; transform: scale(1.02); }
+  100% { opacity: 0; transform: scale(1.05) translateY(-10px); }
+}

@@ -10,6 +10,7 @@ import { backfillActivity } from './services/activity.js';
 import dataRoutes from './routes/data.js';
 import studyWorkRoutes from './routes/study-work.js';
 import studyRoutes from './routes/study.js';
+import progressRoutes from './routes/progress.js';
 import safeRoutes from './routes/safe.js';
 import aiRoutes from './routes/ai.js';
 import audioRoutes from './routes/audio.js';
@@ -45,6 +46,7 @@ export function createApp() {
   app.use('/api', dataRoutes);
   app.use('/api', studyWorkRoutes);
   app.use('/api', studyRoutes);
+  app.use('/api', progressRoutes);
   app.use('/api', safeRoutes);
   app.use('/api', aiRoutes);
   app.use('/api', audioRoutes);
