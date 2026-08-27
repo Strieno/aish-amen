@@ -51,6 +51,8 @@ import { getPinnedContext, setPinnedContext } from '../services/chat.js';
 import { titleForEntity, CONTEXT_MODES, gatherContext, formatLifeContext } from '../services/life-context.js';
 import { getRecentActivity } from '../services/activity.js';
 import { synthesizeEdge, synthesizeOpenAI, openaiVoiceFor } from '../services/tts.js';
+import { buildContextPacketHybrid, getAceStatus, buildDailyContext } from '../services/context/ace.js';
+import { serializePacket, serializeDebug } from '../services/context/compressor.js';
 import { fetchWithTimeout } from '../lib/net.js';
 
 const r = Router();
@@ -991,6 +993,40 @@ r.put('/conversations/:id/context', (req, res) => {
 });
 
 r.get('/ai/context-modes', (_req, res) => res.json(CONTEXT_MODES));
+
+/* ---------------- ACE — Aish Aman Context Engine ---------------- */
+
+r.get('/ai/ace/status', (_req, res) => {
+  res.json(getAceStatus());
+});
+
+r.post('/ai/ace/build', async (req, res) => {
+  const b = req.body || {};
+  const message = String(b.message || '').trim().slice(0, 2000);
+  try {
+    const packet = await buildContextPacketHybrid({
+      message,
+      mode: b.mode || 'general',
+      debug: b.debug === true || b.debug === 'true',
+    });
+    res.json({
+      packet,
+      text: serializePacket(packet),
+      debug: b.debug === true || b.debug === 'true' ? serializeDebug(packet) : undefined,
+    });
+  } catch (error) {
+    res.status(502).json({ error: error.message });
+  }
+});
+
+r.post('/ai/ace/daily', (_req, res) => {
+  try {
+    const { packet, summary } = buildDailyContext();
+    res.json({ summary, packet: { intent: packet.intent, metadata: packet.metadata } });
+  } catch (error) {
+    res.status(502).json({ error: error.message });
+  }
+});
 
 /* ---------------- Live voice conversation (OpenAI Realtime + WebRTC) ---------------- */
 

@@ -2,11 +2,16 @@ import { all, get } from '../db/index.js';
 import { getSetting } from './settings.js';
 import { parseJson } from '../lib/util.js';
 import { gatherContext, formatLifeContext } from './life-context.js';
+import { buildContextPacket } from './context/ace.js';
+import { serializePacket } from './context/compressor.js';
 
 /**
  * Builds a token-budgeted context object for an AI request.
  * Delegates cross-domain retrieval to the LifeContextEngine; adds the user
- * profile, today's schedule and RAG knowledge on top.
+ * profile, today's schedule and RAG knowledge on top. When ACE is healthy it
+ * also attaches a ranked ContextPacket (`context.ace`) and its prompt-safe
+ * serialization (`context.aceText`) — with a graceful fallback to the
+ * previous pipeline so the chat never stops.
  */
 export function buildContext({ assistant, userMessage, mode = 'general', pinnedContext = [] }) {
   const profile = buildProfile();
@@ -33,8 +38,7 @@ export function buildContext({ assistant, userMessage, mode = 'general', pinnedC
   });
 
   const schedule = getTodaySchedule();
-
-  return {
+  const context = {
     profile,
     mode,
     gathered,
@@ -48,6 +52,31 @@ export function buildContext({ assistant, userMessage, mode = 'general', pinnedC
     tasks: (gathered.sections.tasks || []).map((t) => ({ id: t.id, title: t.title, priority: 'medium', energy: 'medium', status: 'open', due_date: null })),
     kbIds,
   };
+
+  // ACE — never let it break the chat; on failure keep the classic pipeline.
+  try {
+    const ace = buildContextPacket({
+      message: userMessage || '',
+      mode,
+      permissions: {
+        memories: perms.memory !== false,
+        tasks: perms.tasks !== false,
+        journal: perms.journal !== false,
+        checkins: perms.checkins !== false,
+        study: perms.study !== false,
+        work: perms.work !== false,
+        safe: true,
+      },
+    });
+    context.ace = ace;
+    context.aceText = serializePacket(ace);
+  } catch (error) {
+    context.ace = null;
+    context.aceText = null;
+    context.aceError = error.message;
+  }
+
+  return context;
 }
 
 function buildProfile() {
@@ -71,7 +100,7 @@ function getTodaySchedule() {
   );
 }
 
-function getActiveSafePlan() {
+export function getActiveSafePlan() {
   const row = get(
     `SELECT sp.* FROM safe_living_sessions s
      JOIN safe_living_plans sp ON sp.id = s.plan_id
@@ -83,6 +112,14 @@ function getActiveSafePlan() {
 export function formatContextForPrompt(ctx) {
   const lines = [];
   if (ctx.profile?.name) lines.push(`المستخدم: ${ctx.profile.name}`);
+
+  // ACE path: the ranked, compressed, injection-safe ContextPacket.
+  if (ctx.aceText) {
+    lines.push(ctx.aceText);
+    return lines.join('\n');
+  }
+
+  // Legacy fallback path (ACE failed or disabled).
   if (ctx.gathered) {
     const body = formatLifeContext(ctx.gathered, { tokenBudget: 1500 });
     if (body) lines.push(body);

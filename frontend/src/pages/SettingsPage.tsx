@@ -449,6 +449,92 @@ function LanguageTab() {
   );
 }
 
+function AceInspector({ t }: { t: (key: string) => string }) {
+  const [status, setStatus] = useState<{ enabled?: boolean; last?: { intent?: string; candidateCount?: number; selectedCount?: number; estimatedTokens?: number } } | null>(null);
+  const [message, setMessage] = useState('');
+  const [built, setBuilt] = useState<{ text?: string; debug?: string } | null>(null);
+  const [debug, setDebug] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+
+  const loadStatus = async () => {
+    try {
+      const s = await api.get<{ enabled?: boolean; last?: { intent?: string; candidateCount?: number; selectedCount?: number; estimatedTokens?: number } }>('/ai/ace/status');
+      setStatus(s);
+    } catch {
+      setStatus({ enabled: false });
+    }
+  };
+
+  useEffect(() => {
+    loadStatus();
+  }, []);
+
+  const build = async () => {
+    setBusy(true);
+    setErr('');
+    try {
+      const r = await api.post<{ text?: string; debug?: string }>('/ai/ace/build', { message, debug });
+      setBuilt(r);
+    } catch {
+      setErr(t('settings.ace.unavailable'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className={`chip ${status?.enabled ? '!bg-ok-bg !text-ok' : '!bg-warn-bg !text-warn'}`}>
+          {t('settings.ace.status')}: {status?.enabled ? t('settings.ace.active') : t('settings.ace.unavailable')}
+        </span>
+        {status?.last && (
+          <>
+            <span className="chip">{t('settings.ace.lastIntent')}: {status.last.intent || '—'}</span>
+            <span className="chip">{t('settings.ace.candidates')}: {status.last.candidateCount ?? 0}</span>
+            <span className="chip">{t('settings.ace.selected')}: {status.last.selectedCount ?? 0}</span>
+            <span className="chip">{t('settings.ace.tokens')}: {status.last.estimatedTokens ?? 0}</span>
+          </>
+        )}
+      </div>
+
+      <Field label={t('settings.ace.message')}>
+        <textarea
+          className="input min-h-20 resize-y text-sm"
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          placeholder="مثال: كيف وضعي بالدراسة؟"
+        />
+      </Field>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Button className="!px-3 !py-1.5 text-xs" onClick={build} disabled={busy || !message.trim()}>
+          {busy && <Spinner className="h-3.5 w-3.5" />}
+          <Brain className="h-3.5 w-3.5" /> {t('settings.ace.viewContext')}
+        </Button>
+        <label className="flex cursor-pointer items-center gap-1.5 text-xs font-semibold text-ink-soft">
+          <input type="checkbox" checked={debug} onChange={(e) => setDebug(e.target.checked)} className="h-3.5 w-3.5 accent-[rgb(var(--brand))]" />
+          {t('settings.ace.debug')}
+        </label>
+      </div>
+
+      {err && <p className="rounded-xl border border-warn-border bg-warn-bg px-3 py-2 text-xs text-warn">{err}</p>}
+
+      {built?.text && (
+        <pre className="max-h-80 overflow-auto whitespace-pre-wrap rounded-xl border border-line bg-elevated p-3 text-[12px] leading-5 text-ink-soft">
+          {built.text}
+        </pre>
+      )}
+      {debug && built?.debug && (
+        <pre className="max-h-60 overflow-auto whitespace-pre-wrap rounded-xl border border-dashed border-brand-lighter bg-brand-soft/40 p-3 text-[11px] leading-5 text-brand-dark" dir="ltr">
+          {built.debug}
+        </pre>
+      )}
+    </div>
+  );
+}
+
 function AiTab() {
   const t = useT();
   const { data: providers, refetch: refetchProviders } = useApi<Provider[]>('/providers');
@@ -608,6 +694,11 @@ function AiTab() {
             </div>
           ))}
         </div>
+      </SectionCard>
+
+      {/* ACE — Aish Aman Context Engine inspector */}
+      <SectionCard title={t('settings.ace.title')} icon={Brain}>
+        <AceInspector t={t} />
       </SectionCard>
 
       <SectionCard title={t('settings.aiPerms')} icon={Shield}>
