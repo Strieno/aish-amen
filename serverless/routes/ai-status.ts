@@ -1,4 +1,4 @@
-import { DEEPSEEK_PROVIDER_ID, assertCloudAiAllowed, authContext, deepSeekConfigured } from '../../serverless/cloud-ai';
+import { DEEPSEEK_PROVIDER_ID, assertCloudAiAllowed, authContext, deepSeekConfigured } from '../cloud-ai';
 export default async function handler(req: any, res: any) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
   const ctx = await authContext(req);

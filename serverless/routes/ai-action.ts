@@ -8,7 +8,7 @@ import {
   sbSelect,
   uid,
   writeAllowed,
-} from '../../serverless/cloud-ai';
+} from '../cloud-ai';
 
 export const config = { maxDuration: 60 };
 

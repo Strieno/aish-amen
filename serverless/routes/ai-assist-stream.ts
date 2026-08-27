@@ -9,7 +9,7 @@ import {
   proxyDeepSeekStream,
   selectedModel,
   sendSse,
-} from '../../../serverless/cloud-ai';
+} from '../cloud-ai';
 
 export const config = { maxDuration: 60 };
 

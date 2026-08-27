@@ -1,4 +1,4 @@
-import { authContext, buildCloudContext, generateText, parseJsonObject, sbInsert, sbSelect, uid } from '../../serverless/cloud-ai';
+import { authContext, buildCloudContext, generateText, parseJsonObject, sbInsert, sbSelect, uid } from '../cloud-ai';
 export const config = { maxDuration: 30 };
 
 const TABLES: Record<string, { table: string; title: string }> = {
