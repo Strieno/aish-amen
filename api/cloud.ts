@@ -8,6 +8,9 @@ import aiStatus from '../serverless/routes/ai-status';
 import aiSuggest from '../serverless/routes/ai-suggest';
 import aiTts from '../serverless/routes/ai-tts';
 import aiRealtimeCall from '../serverless/routes/ai-realtime-call';
+import aiAceStatus from '../serverless/routes/ai-ace-status';
+import aiAceBuild from '../serverless/routes/ai-ace-build';
+import aiAceDaily from '../serverless/routes/ai-ace-daily';
 import conversationCategorize from '../serverless/routes/conversation-categorize';
 import linksDiscover from '../serverless/routes/links-discover';
 import providerTest from '../serverless/routes/provider-test';
@@ -27,6 +30,9 @@ const handlers: Record<string, Handler> = {
   'ai-suggest': aiSuggest,
   'ai-tts': aiTts,
   'ai-realtime-call': aiRealtimeCall,
+  'ai-ace-status': aiAceStatus,
+  'ai-ace-build': aiAceBuild,
+  'ai-ace-daily': aiAceDaily,
   'conversation-categorize': conversationCategorize,
   'links-discover': linksDiscover,
   'provider-test': providerTest,

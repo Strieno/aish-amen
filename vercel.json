@@ -65,6 +65,18 @@
       "destination": "/api/cloud?route=ai-tts"
     },
     {
+      "source": "/api/ai/ace/status",
+      "destination": "/api/cloud?route=ai-ace-status"
+    },
+    {
+      "source": "/api/ai/ace/build",
+      "destination": "/api/cloud?route=ai-ace-build"
+    },
+    {
+      "source": "/api/ai/ace/daily",
+      "destination": "/api/cloud?route=ai-ace-daily"
+    },
+    {
       "source": "/api/ai/realtime/call",
       "destination": "/api/cloud?route=ai-realtime-call"
     },
