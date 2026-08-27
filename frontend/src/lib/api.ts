@@ -40,9 +40,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (cloud.handled) return cloud.data as T;
 
   const token = cloudConfigured ? (await supabase?.auth.getSession())?.data.session?.access_token : null;
+  const headers = new Headers(options.headers);
+  if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
+  for (const [name, value] of Object.entries(cloudHeaders)) headers.set(name, value);
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+
   const res = await fetch(trustedBase() + path, {
-    headers: { 'Content-Type': 'application/json', ...cloudHeaders, ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(options.headers || {}) },
     ...options,
+    headers,
   });
   if (!res.ok) {
     let msg = `HTTP ${res.status}`;
@@ -91,9 +96,13 @@ export async function streamChat(
     : payload;
   const token = cloudConfigured ? (await supabase?.auth.getSession())?.data.session?.access_token : null;
   const base = trustedBase();
+  const headers = new Headers({ 'Content-Type': 'application/json' });
+  for (const [name, value] of Object.entries(cloudHeaders)) headers.set(name, value);
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+
   const res = await fetch(isAssist ? base + '/ai/assist/stream' : base + '/chat/stream', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...cloudHeaders, ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    headers,
     body: JSON.stringify(requestPayload),
     signal: handlers.signal,
   });
