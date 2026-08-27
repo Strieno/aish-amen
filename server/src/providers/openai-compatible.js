@@ -136,4 +136,28 @@ export class OpenAICompatibleProvider extends AIProvider {
     });
     return (data.data || []).map((d) => d.embedding);
   }
+
+  /** Text-to-speech via the OpenAI /audio/speech endpoint (returns mp3 Buffer). */
+  async tts({ text, model = 'gpt-4o-mini-tts', voice = 'nova', speed = 1 }) {
+    const res = await fetchWithTimeout(
+      `${this.baseUrl}/audio/speech`,
+      {
+        method: 'POST',
+        headers: this.buildHeaders(),
+        body: JSON.stringify({
+          model,
+          input: text,
+          voice,
+          speed,
+          response_format: 'mp3',
+        }),
+      },
+      this.timeoutMs,
+    );
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`${this.name}: ${res.status} ${body.slice(0, 300)}`);
+    }
+    return Buffer.from(await res.arrayBuffer());
+  }
 }

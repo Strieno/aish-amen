@@ -38,6 +38,20 @@ import { speak, startRecognition, sttSupported, stopSpeaking, type RecognitionCo
 
 const SECTIONS = ['account', 'general', 'voice', 'appearance', 'language', 'ai', 'privacy', 'data', 'backups', 'developer'];
 
+const OPENAI_VOICES = ['auto', 'alloy', 'ash', 'ballad', 'coral', 'echo', 'fable', 'nova', 'onyx', 'sage', 'shimmer', 'verse'];
+
+const EDGE_VOICES = [
+  { id: 'auto', label: 'تلقائي حسب اللغة' },
+  { id: 'ar-EG-SalmaNeural', label: 'سلمى — عربية (مصر) أنثى' },
+  { id: 'ar-SA-ZariyahNeural', label: 'زارية — عربية (السعودية) أنثى' },
+  { id: 'ar-SA-HamedNeural', label: 'حامد — عربية (السعودية) ذكر' },
+  { id: 'ar-AE-FatimaNeural', label: 'فاطمة — عربية (الإمارات) أنثى' },
+  { id: 'en-US-AriaNeural', label: 'Aria — English (US) female' },
+  { id: 'en-US-GuyNeural', label: 'Guy — English (US) male' },
+  { id: 'en-GB-SoniaNeural', label: 'Sonia — English (UK) female' },
+  { id: 'en-GB-RyanNeural', label: 'Ryan — English (UK) male' },
+];
+
 export default function SettingsPage() {
   const t = useT();
   const [section, setSection] = useState('general');
@@ -147,10 +161,23 @@ function VoiceTab() {
   const lang = useAppStore((s) => s.settings.language);
   const settings = useAppStore((s) => s.settings);
   const update = useAppStore((s) => s.updateSettings);
-  const audio = settings.audio || { uiSounds: true, ttsEnabled: true, speechRate: 1, voiceLang: 'auto' };
+  const audio = settings.audio || {
+    uiSounds: true,
+    ttsEnabled: true,
+    speechRate: 1,
+    voiceLang: 'auto',
+    ttsEngine: 'auto',
+    ttsProviderId: '',
+    ttsModel: 'gpt-4o-mini-tts',
+    ttsVoice: 'auto',
+    ttsVoiceEdge: 'auto',
+  };
+  const { data: providers } = useApi<Provider[]>('/providers');
   const [recording, setRecording] = useState(false);
   const [heard, setHeard] = useState('');
   const [interim, setInterim] = useState('');
+  const [lastEngine, setLastEngine] = useState('');
+  const [speaking, setSpeaking] = useState(false);
   const recRef = useRef<RecognitionController | null>(null);
 
   useEffect(
@@ -194,13 +221,21 @@ function VoiceTab() {
     }
   };
 
-  const speakTest = () => {
-    speak({
+  const speakTest = async () => {
+    stopSpeaking();
+    setSpeaking(true);
+    setLastEngine('');
+    const result = await speak({
       text: lang === 'en' ? 'Aish Aman — your safe living companion.' : 'عِش آمن — خطوة صغيرة واضحة الآن خير من خطة كاملة مربكة.',
       lang: audio.voiceLang !== 'auto' ? audio.voiceLang : lang === 'en' ? 'en-US' : 'ar-SA',
       rate: audio.speechRate,
     });
+    setLastEngine(result.engine);
+    setSpeaking(false);
   };
+
+  const engineLabel = (engine: string) =>
+    engine === 'openai' ? t('settings.engineOpenai') : engine === 'edge' ? t('settings.engineEdge') : t('settings.engineBrowser');
 
   return (
     <div className="space-y-4">
@@ -228,6 +263,59 @@ function VoiceTab() {
           <Toggle checked={audio.ttsEnabled} onChange={(v) => patchAudio({ ttsEnabled: v })} label={t('settings.ttsEnabled')} />
         </div>
         <div className="mt-4 space-y-3">
+          <Field label={t('settings.ttsEngine')}>
+            <Select value={audio.ttsEngine || 'auto'} onChange={(v) => patchAudio({ ttsEngine: v })}>
+              <option value="auto">{t('settings.ttsEngineAuto')}</option>
+              <option value="server">{t('settings.ttsEngineServer')}</option>
+              <option value="browser">{t('settings.ttsEngineBrowser')}</option>
+            </Select>
+          </Field>
+          <Field label={t('settings.ttsProvider')} hint={t('settings.ttsProviderHint')}>
+            <Select value={audio.ttsProviderId || ''} onChange={(v) => patchAudio({ ttsProviderId: v })}>
+              <option value="">{t('settings.ttsEdgeHint')}</option>
+              {(providers || [])
+                .filter((p) => p.type === 'openai-compatible')
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+            </Select>
+          </Field>
+          {audio.ttsProviderId && (
+            <>
+              <Field label={t('settings.ttsModel')}>
+                <input
+                  className="input"
+                  dir="ltr"
+                  value={audio.ttsModel}
+                  onChange={(e) => patchAudio({ ttsModel: e.target.value })}
+                  placeholder="gpt-4o-mini-tts"
+                />
+              </Field>
+              <Field label={t('settings.ttsVoice')}>
+                <Select value={audio.ttsVoice || 'auto'} onChange={(v) => patchAudio({ ttsVoice: v })}>
+                  {OPENAI_VOICES.map((v) => (
+                    <option key={v} value={v}>
+                      {v === 'auto' ? t('settings.voiceAuto') : v}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            </>
+          )}
+          <Field label={t('settings.ttsVoiceEdge')}>
+            <Select value={audio.ttsVoiceEdge || 'auto'} onChange={(v) => patchAudio({ ttsVoiceEdge: v })}>
+              {EDGE_VOICES.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.label}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          {settings.privacy?.maxPrivacy && (
+            <p className="rounded-xl border border-warn-border bg-warn-bg px-3 py-2 text-xs text-warn">{t('settings.ttsPrivacyBlocked')}</p>
+          )}
           <Field label={`${t('settings.speechRate')}: ${audio.speechRate.toFixed(1)}x`}>
             <input
               type="range"
@@ -247,13 +335,19 @@ function VoiceTab() {
               <option value="en-US">English (en-US)</option>
             </Select>
           </Field>
-          <div className="flex gap-2">
-            <Button variant="ghost" className="!px-3 !py-1.5 text-xs" onClick={speakTest}>
-              <Volume2 className="h-3.5 w-3.5" /> {t('settings.ttsTest')}
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="ghost" className="!px-3 !py-1.5 text-xs" onClick={speakTest} disabled={speaking}>
+              {speaking && <Spinner className="h-3.5 w-3.5" />}
+              {!speaking && <Volume2 className="h-3.5 w-3.5" />} {t('settings.ttsTest')}
             </Button>
             <Button variant="ghost" className="!px-3 !py-1.5 text-xs" onClick={() => stopSpeaking()}>
               <Square className="h-3.5 w-3.5" /> {t('settings.stopSpeech')}
             </Button>
+            {lastEngine && (
+              <span className="chip !bg-ok-bg !text-ok">
+                {t('settings.engineUsed')}: {engineLabel(lastEngine)}
+              </span>
+            )}
           </div>
         </div>
       </SectionCard>

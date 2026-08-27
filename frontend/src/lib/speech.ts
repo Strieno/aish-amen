@@ -105,6 +105,9 @@ export function startRecognition(opts: {
 
 /* ============ Text-to-Speech ============ */
 
+import { api } from './api';
+import { useAppStore } from './app-store';
+
 export function ttsSupported(): boolean {
   return typeof window !== 'undefined' && 'speechSynthesis' in window;
 }
@@ -136,15 +139,70 @@ export function stripMarkdown(text: string): string {
     .trim();
 }
 
-export function speak(opts: {
+let currentAudio: HTMLAudioElement | null = null;
+
+export function stopSpeaking() {
+  if (ttsSupported()) window.speechSynthesis.cancel();
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio = null;
+  }
+}
+
+export function isSpeaking(): boolean {
+  return (ttsSupported() && window.speechSynthesis.speaking) || !!currentAudio;
+}
+
+function playAudioBase64(b64: string, format: string, onStart?: () => void, onEnd?: () => void): Promise<void> {
+  return new Promise((resolve, reject) => {
+    let audio: HTMLAudioElement | null = null;
+    try {
+      const bin = atob(b64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      const mime = format === 'mp3' ? 'audio/mpeg' : `audio/${format}`;
+      const blob = new Blob([bytes], { type: mime });
+      const url = URL.createObjectURL(blob);
+      audio = new Audio(url);
+      currentAudio = audio;
+      const cleanup = () => {
+        URL.revokeObjectURL(url);
+        if (currentAudio === audio) currentAudio = null;
+        audio = null;
+      };
+      audio.onplay = () => onStart?.();
+      audio.onended = () => {
+        cleanup();
+        onEnd?.();
+        resolve();
+      };
+      audio.onerror = () => {
+        cleanup();
+        onEnd?.();
+        reject(new Error('audio playback failed'));
+      };
+      audio.play().catch((error) => {
+        cleanup();
+        reject(error instanceof Error ? error : new Error('audio playback failed'));
+      });
+    } catch (error) {
+      reject(error instanceof Error ? error : new Error('audio decode failed'));
+    }
+  });
+}
+
+function browserSpeak(opts: {
   text: string;
   lang?: string;
   rate?: number;
   onStart?: () => void;
   onEnd?: () => void;
 }) {
-  if (!ttsSupported() || !opts.text.trim()) return;
   stopSpeaking();
+  if (!ttsSupported()) {
+    opts.onEnd?.();
+    return;
+  }
   const utterance = new SpeechSynthesisUtterance(stripMarkdown(opts.text));
   const lang = opts.lang || 'ar-SA';
   const voice = pickVoice(lang);
@@ -158,10 +216,70 @@ export function speak(opts: {
   window.speechSynthesis.speak(utterance);
 }
 
-export function stopSpeaking() {
-  if (ttsSupported()) window.speechSynthesis.cancel();
+export interface SpeakResult {
+  engine: 'edge' | 'openai' | 'browser';
+  ok: boolean;
+  error?: string;
 }
 
-export function isSpeaking(): boolean {
-  return ttsSupported() && window.speechSynthesis.speaking;
+/**
+ * Speak with a human neural voice.
+ * Engine resolution (settings.audio.ttsEngine):
+ *  - 'browser': system voices only.
+ *  - 'server' : server neural TTS only (Edge free voice, or OpenAI provider).
+ *  - 'auto'   : server neural TTS, falling back to browser voices.
+ * Maximum-privacy mode forces browser-only (no cloud calls).
+ */
+export async function speak(opts: {
+  text: string;
+  lang?: string;
+  rate?: number;
+  onStart?: () => void;
+  onEnd?: () => void;
+}): Promise<SpeakResult> {
+  const state = useAppStore.getState();
+  const audio = {
+    ttsEngine: 'auto',
+    ttsProviderId: '',
+    ttsModel: 'gpt-4o-mini-tts',
+    ttsVoice: 'auto',
+    ttsVoiceEdge: 'auto',
+    ...(state.settings.audio || {}),
+  };
+  const engine = audio.ttsEngine || 'auto';
+  const maxPrivacy = state.settings.privacy?.maxPrivacy === true;
+
+  const wantServer = engine !== 'browser' && !maxPrivacy;
+
+  if (wantServer) {
+    try {
+      const r = await api.post<{ ok?: boolean; engine?: string; format?: string; audio?: string; error?: string }>(
+        '/ai/tts',
+        {
+          text: stripMarkdown(opts.text).slice(0, 4000),
+          engine: 'auto',
+          provider_id: audio.ttsProviderId || undefined,
+          model: audio.ttsModel || undefined,
+          voice: audio.ttsVoice || undefined,
+          voice_edge: audio.ttsVoiceEdge || undefined,
+          speed: opts.rate ?? 1,
+          lang: (opts.lang || 'ar-SA').toLowerCase().startsWith('en') ? 'en' : 'ar',
+        },
+      );
+      if (r.audio) {
+        await playAudioBase64(r.audio, r.format || 'mp3', opts.onStart, opts.onEnd);
+        return { engine: r.engine === 'openai' ? 'openai' : 'edge', ok: true };
+      }
+      throw new Error(r.error || 'empty response');
+    } catch (error) {
+      if (engine === 'server') {
+        opts.onEnd?.();
+        return { engine: 'edge', ok: false, error: error instanceof Error ? error.message : 'tts failed' };
+      }
+      // 'auto' → fall back to the browser voices.
+    }
+  }
+
+  browserSpeak(opts);
+  return { engine: 'browser', ok: true };
 }

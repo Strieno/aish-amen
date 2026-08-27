@@ -49,6 +49,7 @@ import { smartContext } from '../services/smart-context.js';
 import { getPinnedContext, setPinnedContext } from '../services/chat.js';
 import { titleForEntity, CONTEXT_MODES, gatherContext, formatLifeContext } from '../services/life-context.js';
 import { getRecentActivity } from '../services/activity.js';
+import { synthesizeEdge, synthesizeOpenAI, openaiVoiceFor } from '../services/tts.js';
 
 const r = Router();
 
@@ -988,5 +989,63 @@ r.put('/conversations/:id/context', (req, res) => {
 });
 
 r.get('/ai/context-modes', (_req, res) => res.json(CONTEXT_MODES));
+
+/* ---------------- Neural text-to-speech ---------------- */
+
+r.get('/ai/tts/status', (_req, res) => {
+  res.json({
+    edge: true,
+    openaiProviders: listProviders()
+      .filter((p) => p.type === 'openai-compatible')
+      .map((p) => ({ id: p.id, name: p.name, has_api_key: p.has_api_key })),
+  });
+});
+
+r.post('/ai/tts', async (req, res) => {
+  const b = req.body || {};
+  const text = String(b.text || '').trim().slice(0, 4000);
+  if (!text) return res.status(400).json({ error: 'text required' });
+
+  const engine = ['edge', 'openai', 'auto'].includes(b.engine) ? b.engine : 'auto';
+  const lang = b.lang === 'en' ? 'en' : 'ar';
+  const speed = Math.min(2, Math.max(0.5, Number(b.speed) || 1));
+
+  const wantOpenAI = engine === 'openai' || (engine === 'auto' && b.provider_id);
+
+  if (wantOpenAI) {
+    const provider = getProvider(b.provider_id) || getPrimaryProvider();
+    if (provider && typeof provider.tts === 'function') {
+      try {
+        const audio = await synthesizeOpenAI({
+          provider,
+          text,
+          model: b.model || 'gpt-4o-mini-tts',
+          voice: openaiVoiceFor(lang, b.voice),
+          speed,
+        });
+        return res.json({ ok: true, engine: 'openai', format: 'mp3', audio: audio.toString('base64') });
+      } catch (error) {
+        if (engine === 'openai') {
+          return res.status(502).json({ error: error.message });
+        }
+        // engine === 'auto': fall through to the free Edge voices.
+      }
+    } else if (engine === 'openai') {
+      return res.status(400).json({ error: 'no tts-capable provider' });
+    }
+  }
+
+  try {
+    const audio = await synthesizeEdge({
+      text,
+      voice: b.voice_edge,
+      rate: speed,
+      lang,
+    });
+    res.json({ ok: true, engine: 'edge', format: 'mp3', audio: audio.toString('base64') });
+  } catch (error) {
+    res.status(502).json({ error: error.message });
+  }
+});
 
 export default r;
