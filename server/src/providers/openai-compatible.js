@@ -138,7 +138,7 @@ export class OpenAICompatibleProvider extends AIProvider {
   }
 
   /** Text-to-speech via the OpenAI /audio/speech endpoint (returns mp3 Buffer). */
-  async tts({ text, model = 'gpt-4o-mini-tts', voice = 'nova', speed = 1 }) {
+  async tts({ text, model = 'tts-1', voice = 'alloy', speed = 1 }) {
     const res = await fetchWithTimeout(
       `${this.baseUrl}/audio/speech`,
       {

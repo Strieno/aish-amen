@@ -350,6 +350,7 @@ const ar: Dict = {
 'chat.micNoSpeech': 'لم أسمع شيئًا — حاول مرة أخرى',
 'chat.micStop': 'إيقاف التسجيل',
 'chat.speak': 'استماع',
+'chat.speechError': 'تعذر تشغيل صوت Alloy. تحقق من مفتاح OpenAI وإعدادات الصوت.',
 'chat.stopSpeaking': 'إيقاف القراءة',
 
 'tasks.title': 'المهام',
@@ -599,6 +600,7 @@ const ar: Dict = {
 'settings.ttsEdgeHint': 'صوت Edge العصبي المجاني — بدون مفتاح (يتطلب إنترنت)',
 'settings.ttsModel': 'نموذج الصوت',
 'settings.ttsVoice': 'صوت OpenAI',
+'settings.ttsAlloyHint': 'الصوت الافتراضي هو Alloy من OpenAI عند قراءة ردود المساعد.',
 'settings.ttsVoiceEdge': 'صوت الخادم المجاني (Neural)',
 'settings.ttsPrivacyBlocked': 'الخصوصية القصوى مفعّلة — سيُستخدم صوت المتصفح المحلي فقط',
 'settings.engineUsed': 'المحرك المستخدم',
@@ -776,6 +778,7 @@ const en: Dict = {
 'chat.micNoSpeech': 'I did not hear anything — try again',
 'chat.micStop': 'Stop recording',
 'chat.speak': 'Read aloud',
+'chat.speechError': 'Could not play the Alloy voice. Check the OpenAI key and voice settings.',
 'chat.stopSpeaking': 'Stop reading',
 
 'tasks.title': 'Tasks',
@@ -1025,6 +1028,7 @@ const en: Dict = {
 'settings.ttsEdgeHint': 'Free Edge neural voice — no API key (requires internet)',
 'settings.ttsModel': 'Voice model',
 'settings.ttsVoice': 'OpenAI voice',
+'settings.ttsAlloyHint': 'Alloy by OpenAI is the default voice for reading assistant replies.',
 'settings.ttsVoiceEdge': 'Free server voice (Neural)',
 'settings.ttsPrivacyBlocked': 'Maximum privacy is on — only the local browser voice will be used',
 'settings.engineUsed': 'Engine used',

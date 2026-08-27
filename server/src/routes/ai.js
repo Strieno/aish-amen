@@ -1035,7 +1035,7 @@ r.post('/ai/tts', async (req, res) => {
         const audio = await synthesizeOpenAI({
           provider,
           text,
-          model: b.model || 'gpt-4o-mini-tts',
+          model: b.model || 'tts-1',
           voice: openaiVoiceFor(lang, b.voice),
           speed,
         });

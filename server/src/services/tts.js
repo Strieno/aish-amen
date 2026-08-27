@@ -9,7 +9,7 @@ import { uid } from '../lib/util.js';
  * Two engines:
  *  - Edge: Microsoft's free neural voices (very human, no API key).
  *  - OpenAI: any OpenAI-compatible provider exposing /audio/speech
- *    (gpt-4o-mini-tts, tts-1) — the same voice family ChatGPT uses.
+ *    (tts-1) with the Alloy voice.
  */
 
 let edgeTTSModule = null;
@@ -48,7 +48,7 @@ export function edgeVoiceFor(lang, chosen) {
 
 export function openaiVoiceFor(lang, chosen) {
   if (chosen && chosen !== 'auto') return chosen;
-  return 'nova';
+  return 'alloy';
 }
 
 /** Synthesize speech with Microsoft Edge neural voices (free, no key). */

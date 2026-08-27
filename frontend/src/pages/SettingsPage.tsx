@@ -38,7 +38,7 @@ import { speak, startRecognition, sttSupported, stopSpeaking, type RecognitionCo
 
 const SECTIONS = ['account', 'general', 'voice', 'appearance', 'language', 'ai', 'privacy', 'data', 'backups', 'developer'];
 
-const OPENAI_VOICES = ['auto', 'alloy', 'ash', 'ballad', 'coral', 'echo', 'fable', 'nova', 'onyx', 'sage', 'shimmer', 'verse'];
+const OPENAI_VOICES = ['alloy', 'ash', 'ballad', 'coral', 'echo', 'fable', 'nova', 'onyx', 'sage', 'shimmer', 'verse'];
 
 const EDGE_VOICES = [
   { id: 'auto', label: 'تلقائي حسب اللغة' },
@@ -272,28 +272,24 @@ function VoiceTab() {
                 ))}
             </Select>
           </Field>
-          {audio.ttsProviderId && (
-            <>
-              <Field label={t('settings.ttsModel')}>
-                <input
-                  className="input"
-                  dir="ltr"
-                  value={audio.ttsModel}
-                  onChange={(e) => patchAudio({ ttsModel: e.target.value })}
-                  placeholder="gpt-4o-mini-tts"
-                />
-              </Field>
-              <Field label={t('settings.ttsVoice')}>
-                <Select value={audio.ttsVoice || 'auto'} onChange={(v) => patchAudio({ ttsVoice: v })}>
-                  {OPENAI_VOICES.map((v) => (
-                    <option key={v} value={v}>
-                      {v === 'auto' ? t('settings.voiceAuto') : v}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-            </>
-          )}
+          <Field label={t('settings.ttsModel')}>
+            <input
+              className="input"
+              dir="ltr"
+              value={audio.ttsModel}
+              onChange={(e) => patchAudio({ ttsModel: e.target.value })}
+              placeholder="tts-1"
+            />
+          </Field>
+          <Field label={t('settings.ttsVoice')} hint={t('settings.ttsAlloyHint')}>
+            <Select value={audio.ttsVoice || 'alloy'} onChange={(v) => patchAudio({ ttsVoice: v })}>
+              {OPENAI_VOICES.map((v) => (
+                <option key={v} value={v}>
+                  {v === 'alloy' ? 'alloy — ChatGPT' : v}
+                </option>
+              ))}
+            </Select>
+          </Field>
           <Field label={t('settings.ttsVoiceEdge')}>
             <Select value={audio.ttsVoiceEdge || 'auto'} onChange={(v) => patchAudio({ ttsVoiceEdge: v })}>
               {EDGE_VOICES.map((v) => (

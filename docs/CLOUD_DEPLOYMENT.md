@@ -45,6 +45,7 @@ Before upload, the untouched JSON export is saved in the browser's IndexedDB. Ro
 4. Configure at least one server-side AI provider:
    - DeepSeek: `AI_PROVIDER=deepseek`, `DEEPSEEK_API_KEY`, and optionally `DEEPSEEK_MODEL` (defaults to `deepseek-chat`).
    - OpenAI: `AI_PROVIDER=openai`, `OPENAI_API_KEY`, and optionally `OPENAI_MODEL` (defaults to `gpt-5.6-luna`). OpenAI requests use the Responses API.
+   - Read-aloud uses the same `OPENAI_API_KEY` with the Audio Speech endpoint. It defaults to `OPENAI_TTS_MODEL=tts-1` and `OPENAI_TTS_VOICE=alloy`; both can be overridden server-side.
    - If both keys exist, `AI_PROVIDER` selects the default; users can select an available provider/model in chat.
 5. Deploy, open **Settings → AI**, and run **Test connection**. A configured badge only means the environment variable exists; the test performs a real provider request.
 6. Add the final Vercel URL to Supabase Authentication redirect URLs.
@@ -62,6 +63,8 @@ Before upload, the untouched JSON export is saved in the browser's IndexedDB. Ro
 ## 6. AI backend boundary
 
 AI keys are intentionally not written to Supabase or browser code. Vercel functions keep provider secrets server-side, validate the Supabase JWT with Supabase Auth on every AI request, and access user data through the same signed token so RLS remains authoritative. Browser-provided Supabase URLs/keys are ignored in production to prevent requests from being redirected to an untrusted host.
+
+Generated speech follows the same boundary: the browser sends only the text selected for reading to the authenticated `/api/ai/tts` route, while `OPENAI_API_KEY` remains inside the Vercel function. Maximum-privacy mode blocks this cloud speech request.
 
 The Express + SQLite backend remains the trusted path for local Ollama/LM Studio and local file/audio processing. Do not publish it as a shared public service: its database is single-owner and its routes are not multi-tenant. `VITE_API_BASE_URL` may point to it during local development.
 

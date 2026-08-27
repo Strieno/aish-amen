@@ -112,6 +112,10 @@ export function ttsSupported(): boolean {
   return typeof window !== 'undefined' && 'speechSynthesis' in window;
 }
 
+export function readAloudSupported(): boolean {
+  return typeof window !== 'undefined' && (typeof Audio !== 'undefined' || ttsSupported());
+}
+
 export function listVoices(): SpeechSynthesisVoice[] {
   if (!ttsSupported()) return [];
   return window.speechSynthesis.getVoices();
@@ -140,13 +144,14 @@ export function stripMarkdown(text: string): string {
 }
 
 let currentAudio: HTMLAudioElement | null = null;
+let currentAudioStop: (() => void) | null = null;
+let currentSpeechRequest: AbortController | null = null;
 
 export function stopSpeaking() {
+  currentSpeechRequest?.abort();
+  currentSpeechRequest = null;
   if (ttsSupported()) window.speechSynthesis.cancel();
-  if (currentAudio) {
-    currentAudio.pause();
-    currentAudio = null;
-  }
+  currentAudioStop?.();
 }
 
 export function isSpeaking(): boolean {
@@ -156,6 +161,7 @@ export function isSpeaking(): boolean {
 function playAudioBase64(b64: string, format: string, onStart?: () => void, onEnd?: () => void): Promise<void> {
   return new Promise((resolve, reject) => {
     let audio: HTMLAudioElement | null = null;
+    let settled = false;
     try {
       const bin = atob(b64);
       const bytes = new Uint8Array(bin.length);
@@ -168,22 +174,27 @@ function playAudioBase64(b64: string, format: string, onStart?: () => void, onEn
       const cleanup = () => {
         URL.revokeObjectURL(url);
         if (currentAudio === audio) currentAudio = null;
+        if (currentAudioStop === stopPlayback) currentAudioStop = null;
         audio = null;
       };
+      const finish = (error?: Error) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        onEnd?.();
+        if (error) reject(error);
+        else resolve();
+      };
+      const stopPlayback = () => {
+        audio?.pause();
+        finish();
+      };
+      currentAudioStop = stopPlayback;
       audio.onplay = () => onStart?.();
-      audio.onended = () => {
-        cleanup();
-        onEnd?.();
-        resolve();
-      };
-      audio.onerror = () => {
-        cleanup();
-        onEnd?.();
-        reject(new Error('audio playback failed'));
-      };
+      audio.onended = () => finish();
+      audio.onerror = () => finish(new Error('audio playback failed'));
       audio.play().catch((error) => {
-        cleanup();
-        reject(error instanceof Error ? error : new Error('audio playback failed'));
+        finish(error instanceof Error ? error : new Error('audio playback failed'));
       });
     } catch (error) {
       reject(error instanceof Error ? error : new Error('audio decode failed'));
@@ -245,12 +256,15 @@ export async function speak(opts: {
   const wantServer = engine !== 'browser' && !maxPrivacy;
 
   if (wantServer) {
+    const requestController = new AbortController();
+    currentSpeechRequest?.abort();
+    currentSpeechRequest = requestController;
     try {
-      const r = await api.post<{ ok?: boolean; engine?: string; format?: string; audio?: string; error?: string }>(
+      const r = await api.postAbortable<{ ok?: boolean; engine?: string; format?: string; audio?: string; error?: string }>(
         '/ai/tts',
         {
           text: stripMarkdown(opts.text).slice(0, 4000),
-          engine: 'auto',
+          engine: engine === 'server' ? 'openai' : 'auto',
           provider_id: audio.ttsProviderId || undefined,
           model: audio.ttsModel || undefined,
           voice: audio.ttsVoice || undefined,
@@ -258,16 +272,23 @@ export async function speak(opts: {
           speed: opts.rate ?? 1,
           lang: (opts.lang || 'ar-SA').toLowerCase().startsWith('en') ? 'en' : 'ar',
         },
+        requestController.signal,
       );
+      if (currentSpeechRequest === requestController) currentSpeechRequest = null;
       if (r.audio) {
         await playAudioBase64(r.audio, r.format || 'mp3', opts.onStart, opts.onEnd);
         return { engine: r.engine === 'openai' ? 'openai' : 'edge', ok: true };
       }
       throw new Error(r.error || 'empty response');
     } catch (error) {
+      if (currentSpeechRequest === requestController) currentSpeechRequest = null;
+      if (requestController.signal.aborted) {
+        opts.onEnd?.();
+        return { engine: 'openai', ok: false, error: 'cancelled' };
+      }
       if (engine === 'server') {
         opts.onEnd?.();
-        return { engine: 'edge', ok: false, error: error instanceof Error ? error.message : 'tts failed' };
+        return { engine: 'openai', ok: false, error: error instanceof Error ? error.message : 'tts failed' };
       }
       // 'auto' → fall back to the browser voices.
     }

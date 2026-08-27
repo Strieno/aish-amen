@@ -71,6 +71,7 @@ function body(method: string, data: unknown) {
 export const api = {
   get: <T>(path: string) => request<T>(path),
   post: <T>(path: string, data?: unknown) => request<T>(path, body('POST', data)),
+  postAbortable: <T>(path: string, data: unknown, signal: AbortSignal) => request<T>(path, { ...body('POST', data), signal }),
   put: <T>(path: string, data?: unknown) => request<T>(path, body('PUT', data)),
   patch: <T>(path: string, data?: unknown) => request<T>(path, body('PATCH', data)),
   del: <T>(path: string) => request<T>(path, { method: 'DELETE' }),

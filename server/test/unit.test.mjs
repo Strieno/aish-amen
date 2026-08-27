@@ -24,6 +24,7 @@ const linksMod = await import('../src/services/links.js');
 const activityMod = await import('../src/services/activity.js');
 const searchMod = await import('../src/services/search.js');
 const proposalsMod = await import('../src/services/ai-proposals.js');
+const ttsMod = await import('../src/services/tts.js');
 
 before(() => {
   dbMod.openDb();
@@ -39,6 +40,12 @@ test('settings round-trip', () => {
   assert.deepEqual(settingsMod.getSetting('testObject'), { a: 1, b: [2, 3] });
   settingsMod.patchSetting('testObject', { c: true });
   assert.deepEqual(settingsMod.getSetting('testObject'), { a: 1, b: [2, 3], c: true });
+});
+
+test('OpenAI read-aloud defaults to the Alloy voice', () => {
+  assert.equal(ttsMod.openaiVoiceFor('ar', 'auto'), 'alloy');
+  assert.equal(ttsMod.openaiVoiceFor('en'), 'alloy');
+  assert.equal(ttsMod.openaiVoiceFor('ar', 'coral'), 'coral');
 });
 
 test('task lifecycle', () => {

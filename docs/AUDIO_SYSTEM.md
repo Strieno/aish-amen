@@ -32,11 +32,14 @@ Scenes can also be triggered from a focus session's "ambient sound" picker.
 track and stops it when the session ends or is cancelled. Sessions are aggregated by the
 Insights module.
 
-## Future / not-yet-implemented
+## Speech and read-aloud
 
-- **STT/TTS**: no local speech models are bundled. The chat mic button is present but shows
-  a clear "speech recognition not configured" message rather than a fake action. The provider
-  interfaces (`STTProvider` / `TTSProvider` with per-assistant voices, TTS cache, ducking)
-  are designed for a later phase but not implemented.
-- **Ducking**: the ambient ducking rule (TTS playback lowers ambient volume) is deferred
-  until a TTS provider exists.
+- Assistant replies and smart suggestions expose a read-aloud button.
+- The default server voice is OpenAI `tts-1` with the `alloy` voice. The API key stays on
+  the Express server or Vercel function; it is never sent to the browser.
+- Local mode can use an OpenAI-compatible provider that implements `/audio/speech`.
+- Cloud mode uses the authenticated `/api/ai/tts` route and respects maximum-privacy mode.
+- Browser speech remains an explicit fallback when the user selects the automatic engine.
+- Speech requests and active audio can be stopped without a delayed response starting later.
+
+Ambient ducking (lowering sound-scene volume during speech) remains a future enhancement.

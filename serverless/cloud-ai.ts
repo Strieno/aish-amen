@@ -1,5 +1,5 @@
 declare const process: { env: Record<string, string | undefined> };
-declare const Buffer: { from(input: string, encoding: string): { toString(encoding: string): string } };
+declare const Buffer: { from(input: string | ArrayBuffer, encoding?: string): { toString(encoding: string): string } };
 
 export const DEEPSEEK_PROVIDER_ID = 'prov-deepseek-cloud';
 export const OPENAI_PROVIDER_ID = 'prov-openai-cloud';
@@ -365,7 +365,7 @@ export function cloudAiBlocked(settings: any) {
 export async function assertCloudAiAllowed(ctx: SbContext) {
   const settings = await settingsMap(ctx);
   if (cloudAiBlocked(settings)) {
-    throw new Error('الخصوصية القصوى مفعّلة: تم حظر إرسال البيانات إلى DeepSeek. عطّلها من الإعدادات لاستخدام الذكاء السحابي.');
+    throw new Error('الخصوصية القصوى مفعّلة: تم حظر إرسال البيانات إلى مزودي الذكاء السحابي. عطّلها من الإعدادات لاستخدام الذكاء أو الصوت السحابي.');
   }
   return settings;
 }
@@ -726,6 +726,36 @@ export async function generateText(messages: any[], options: GenerationOptions =
   const content = String(data?.choices?.[0]?.message?.content || '').trim();
   if (!content) throw new Error('أعاد DeepSeek ردًا فارغًا. حاول صياغة الطلب بطريقة أخرى.');
   return { content, model: String(data?.model || selection.model), provider: selection.providerId, usage: data?.usage || {} };
+}
+
+const OPENAI_SPEECH_VOICES = new Set(['alloy', 'ash', 'ballad', 'coral', 'echo', 'fable', 'nova', 'onyx', 'sage', 'shimmer', 'verse']);
+
+export async function generateSpeech(text: string, options: { model?: string; voice?: string; speed?: number; signal?: AbortSignal } = {}) {
+  const provider = providerDefinitions().find((item) => item.kind === 'openai')!;
+  if (!provider.apiKey) throw new Error('أضف OPENAI_API_KEY في إعدادات Vercel ثم أعد النشر لتشغيل صوت Alloy.');
+
+  const requestedModel = String(options.model || env('OPENAI_TTS_MODEL') || 'tts-1').trim();
+  const model = /^(?:tts-1(?:-hd)?|gpt-4o-mini-tts)$/i.test(requestedModel) ? requestedModel : 'tts-1';
+  const requestedVoice = String(options.voice || env('OPENAI_TTS_VOICE') || 'alloy').trim().toLowerCase();
+  const voice = OPENAI_SPEECH_VOICES.has(requestedVoice) ? requestedVoice : 'alloy';
+  const speed = Math.min(2, Math.max(0.5, Number(options.speed) || 1));
+
+  const response = await fetchWithTimeout(`${provider.baseUrl}/audio/speech`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${provider.apiKey}`,
+    },
+    body: JSON.stringify({ model, input: text.slice(0, 4000), voice, speed, response_format: 'mp3' }),
+    signal: options.signal,
+  }, 45000);
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+    throw new Error(publicProviderError(provider, response.status, payload));
+  }
+  const audio = Buffer.from(await response.arrayBuffer()).toString('base64');
+  if (!audio) throw new Error('أعاد OpenAI ملفًا صوتيًا فارغًا. حاول مرة أخرى.');
+  return { audio, format: 'mp3', model, voice, engine: 'openai' as const };
 }
 
 export function parseJsonObject(text: string) {

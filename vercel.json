@@ -61,6 +61,10 @@
       "destination": "/api/cloud?route=ai-suggest"
     },
     {
+      "source": "/api/ai/tts",
+      "destination": "/api/cloud?route=ai-tts"
+    },
+    {
       "source": "/api/conversations/:id/categorize",
       "destination": "/api/cloud?route=conversation-categorize&id=:id"
     },

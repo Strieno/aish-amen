@@ -22,16 +22,18 @@ export const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
   ttsEnabled: true,
   speechRate: 1,
   voiceLang: 'auto',
-  ttsEngine: 'auto',
+  ttsEngine: 'server',
   ttsProviderId: '',
-  ttsModel: 'gpt-4o-mini-tts',
-  ttsVoice: 'auto',
+  ttsModel: 'tts-1',
+  ttsVoice: 'alloy',
   ttsVoiceEdge: 'auto',
 };
 
 export function normalizeAudioSettings(value: unknown): AudioSettings {
   const raw = value && typeof value === 'object' ? value as Partial<AudioSettings> : {};
   const speechRate = Number(raw.speechRate);
+  const legacyVoiceDefaults = (!raw.ttsVoice || raw.ttsVoice === 'auto')
+    && (!raw.ttsModel || raw.ttsModel === 'gpt-4o-mini-tts');
   return {
     ...DEFAULT_AUDIO_SETTINGS,
     ...raw,
@@ -39,10 +41,12 @@ export function normalizeAudioSettings(value: unknown): AudioSettings {
     ttsEnabled: raw.ttsEnabled !== false,
     speechRate: Number.isFinite(speechRate) ? Math.min(1.8, Math.max(0.6, speechRate)) : DEFAULT_AUDIO_SETTINGS.speechRate,
     voiceLang: typeof raw.voiceLang === 'string' ? raw.voiceLang : DEFAULT_AUDIO_SETTINGS.voiceLang,
-    ttsEngine: typeof raw.ttsEngine === 'string' ? raw.ttsEngine : DEFAULT_AUDIO_SETTINGS.ttsEngine,
+    ttsEngine: legacyVoiceDefaults && raw.ttsEngine === 'auto'
+      ? DEFAULT_AUDIO_SETTINGS.ttsEngine
+      : typeof raw.ttsEngine === 'string' ? raw.ttsEngine : DEFAULT_AUDIO_SETTINGS.ttsEngine,
     ttsProviderId: typeof raw.ttsProviderId === 'string' ? raw.ttsProviderId : DEFAULT_AUDIO_SETTINGS.ttsProviderId,
-    ttsModel: typeof raw.ttsModel === 'string' && raw.ttsModel ? raw.ttsModel : DEFAULT_AUDIO_SETTINGS.ttsModel,
-    ttsVoice: typeof raw.ttsVoice === 'string' ? raw.ttsVoice : DEFAULT_AUDIO_SETTINGS.ttsVoice,
+    ttsModel: !raw.ttsModel || raw.ttsModel === 'gpt-4o-mini-tts' ? DEFAULT_AUDIO_SETTINGS.ttsModel : raw.ttsModel,
+    ttsVoice: !raw.ttsVoice || raw.ttsVoice === 'auto' ? DEFAULT_AUDIO_SETTINGS.ttsVoice : raw.ttsVoice,
     ttsVoiceEdge: typeof raw.ttsVoiceEdge === 'string' ? raw.ttsVoiceEdge : DEFAULT_AUDIO_SETTINGS.ttsVoiceEdge,
   };
 }

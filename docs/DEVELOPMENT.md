@@ -64,12 +64,12 @@ ollama pull command-r7b-arabic    # or qwen3, llama, gemma...
 
 Then in the app: **Settings → AI → Test connection** on the Ollama row → choose a default model.
 
-## Voice / speech (future phase)
+## Voice / speech
 
-STT and TTS are **not yet implemented** — no local speech models are bundled. The chat mic
-button explains this instead of pretending to work. The architecture already separates
-STT / LLM / TTS into interchangeable providers (see `docs/AUDIO_SYSTEM.md`), so a later phase
-can add Faster-Whisper + Kokoro/Piper without touching the rest of the app.
+Read-aloud is implemented through OpenAI's Audio Speech endpoint and defaults to `tts-1`
+with the `alloy` voice. Local mode uses a configured OpenAI-compatible provider; cloud mode
+uses the authenticated Vercel route. Browser speech is available only as the selected fallback.
+Speech-to-text uses the browser Speech Recognition API when supported.
 
 ## Adding a page
 
