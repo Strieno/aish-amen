@@ -22,6 +22,7 @@ export default function TodayPage() {
   const lang = useAppStore((s) => s.settings.language);
   const { data, loading, refetch } = useApi<TodayData>('/dashboard/today');
   const [suggestion, setSuggestion] = useState<string>('');
+  const [suggestionError, setSuggestionError] = useState<string>('');
   const [suggesting, setSuggesting] = useState(false);
   const [newEvent, setNewEvent] = useState(false);
   const [eventTitle, setEventTitle] = useState('');
@@ -34,10 +35,14 @@ export default function TodayPage() {
   const suggest = async (silent = false) => {
     if (!silent) setSuggesting(true);
     try {
-      const r = await api.post<{ suggestion?: string }>('/ai/suggest', {});
+      const r = await api.post<{ suggestion?: string; error?: string; fallback?: boolean }>('/ai/suggest', {});
       setSuggestion(r.suggestion || '');
-    } catch {
-      if (!silent) setSuggestion('');
+      setSuggestionError(r.error || '');
+    } catch (error) {
+      if (!silent) {
+        setSuggestion('');
+        setSuggestionError(error instanceof Error ? error.message : 'تعذر توليد الاقتراح الذكي.');
+      }
     } finally {
       if (!silent) setSuggesting(false);
     }
@@ -198,12 +203,10 @@ export default function TodayPage() {
           <p className="text-[15px] leading-relaxed text-ink">{suggestion}</p>
         ) : (
           <div className="text-sm text-ink-faint">
-            <p className="mb-2">لم يتم ربط نموذج ذكاء اصطناعي بعد.</p>
-            <Link to="/settings">
-              <Button variant="ghost" className="!px-3 !py-1.5 text-xs">
-                <Wand2 className="h-3.5 w-3.5" /> {t('ai.setup')}
-              </Button>
-            </Link>
+            <p className="mb-2">{suggestionError || 'لم يتم توليد اقتراح ذكي بعد.'}</p>
+            <Button variant="ghost" className="!px-3 !py-1.5 text-xs" onClick={() => suggest()} disabled={suggesting}>
+              <Sparkles className="h-3.5 w-3.5" /> إعادة المحاولة
+            </Button>
           </div>
         )}
 

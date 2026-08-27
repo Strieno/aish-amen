@@ -12,6 +12,8 @@ export default async function handler(req: any, res: any) {
     ], { maxTokens: 350, temperature: 0.4 });
     return res.json({ ok: true, suggestion: result.content, fallback: false, model: result.model });
   } catch (error) {
-    return res.json({ ok: true, suggestion: '', fallback: true, error: error instanceof Error ? error.message : 'AI failed' });
+    const message = error instanceof Error ? error.message : 'AI failed';
+    console.error('[ai-suggest]', message);
+    return res.json({ ok: false, suggestion: '', fallback: true, error: message });
   }
 }
