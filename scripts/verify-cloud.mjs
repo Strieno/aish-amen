@@ -47,6 +47,7 @@ if (!aiTts.includes('authContext') || !aiTts.includes('assertCloudAiAllowed')) f
 if (!JSON.stringify(vercel.rewrites).includes('route=ai-tts')) failures.push('cloud TTS rewrite is missing');
 if (!aiRealtime.includes('authContext') || !aiRealtime.includes('assertCloudAiAllowed')) failures.push('cloud Realtime route is not authenticated/privacy-aware');
 if (!aiRealtime.includes('/realtime/calls') || !aiRealtime.includes('semantic_vad') || !aiRealtime.includes('interrupt_response: true')) failures.push('OpenAI Realtime WebRTC/VAD configuration is missing');
+if (!aiRealtime.includes("'Content-Type': 'application/json'") || !aiRealtime.includes('JSON.stringify({ sdp, session })')) failures.push('OpenAI Realtime call must use the current JSON request body');
 if (!JSON.stringify(vercel.rewrites).includes('route=ai-realtime-call')) failures.push('cloud Realtime rewrite is missing');
 for (const route of ['study-tutor', 'study-practice-question', 'study-visualize']) {
   if (!JSON.stringify(vercel.rewrites).includes(`route=${route}`)) failures.push(`cloud ${route} rewrite is missing`);
@@ -54,7 +55,7 @@ for (const route of ['study-tutor', 'study-practice-question', 'study-visualize'
 for (const action of ['practice-question', 'study-visualize']) {
   if (!aiAction.includes(`action === '${action}'`)) failures.push(`cloud ${action} action is missing`);
 }
-if (!bridge.includes("route === '/surprise'") || !bridge.includes("route === '/study/quiz/answer'")) failures.push('cloud surprise or quiz bridge is missing');
+if (!bridge.includes("route === '/surprise'") || !bridge.includes("route === '/study/quiz/answer'") || !bridge.includes("route === '/study/analytics'") || !bridge.includes("route === '/study/sessions'")) failures.push('cloud surprise, quiz, analytics, or study session bridge is missing');
 if (/deepseek-v4-(?:flash|pro)/.test(ai + bridge)) failures.push('obsolete DeepSeek model identifier remains');
 if (!read('.env.example').includes('AI_PROVIDER=')) failures.push('cloud AI provider env documentation missing');
 if (!read('.env.example').includes('OPENAI_TTS_VOICE=alloy')) failures.push('Alloy voice env documentation missing');

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { BarChart3 } from 'lucide-react';
 import { api } from '../../lib/api';
-import { Spinner } from '../../components/ui';
+import { Button, Spinner } from '../../components/ui';
 import { normalizeAnalyticsData, type AnalyticsData } from '../../lib/study-types';
 
 function Bars({ data, height = 90 }: { data: { label: string; value: number; color?: string }[]; height?: number }) {
@@ -42,12 +42,34 @@ function LineTrend({ data }: { data: { label: string; value: number | null }[] }
 
 export default function AnalyticsView() {
   const [data, setData] = useState<AnalyticsData | null>(null);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    api.get<AnalyticsData>('/study/analytics?days=14').then((value) => setData(normalizeAnalyticsData(value))).catch(() => setData(null));
-  }, []);
+    let alive = true;
+    setLoading(true);
+    setError('');
+    api.get<AnalyticsData>('/study/analytics?days=14')
+      .then((value) => { if (alive) setData(normalizeAnalyticsData(value)); })
+      .catch((reason) => {
+        if (!alive) return;
+        setData(null);
+        setError(reason instanceof Error ? reason.message : 'تعذر تحميل تحليلات الدراسة.');
+      })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [attempt]);
 
-  if (!data) return <Spinner className="mx-auto my-8 block h-6 w-6" />;
+  if (loading) return <Spinner className="mx-auto my-8 block h-6 w-6" />;
+  if (error || !data) {
+    return (
+      <div className="card mx-auto my-8 max-w-lg p-5 text-center">
+        <p className="mb-3 text-sm text-danger">{error || 'تعذر تحميل تحليلات الدراسة.'}</p>
+        <Button onClick={() => setAttempt((value) => value + 1)}>إعادة المحاولة</Button>
+      </div>
+    );
+  }
 
   const hasWeekly = data.weekly.some((d) => d.minutes > 0);
   const heatMax = Math.max(1, ...data.heatmap.map((d) => d.total));

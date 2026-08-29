@@ -189,6 +189,117 @@ async function cloudSurprise() {
   return { type: new Date().getHours() >= 22 ? 'calm' : 'idea', title: new Date().getHours() >= 22 ? 'وقت الهدوء' : 'فكرة اليوم', text: ideas[Math.floor(Math.random() * ideas.length)], action: null, actionLabel: null };
 }
 
+async function cloudStudyAnalytics(days = 14) {
+  const rangeDays = Math.min(60, Math.max(7, Math.round(days) || 14));
+  const [focusRows, activityRows, taskRows, courseRows, topics] = await Promise.all([
+    repo('focus_sessions').list({}, { order: 'started_at', ascending: false }),
+    repo('activity_events').list({}, { order: 'ts', ascending: false }),
+    repo('tasks').list(),
+    repo('courses').list(),
+    repo('course_topics').list(),
+  ]);
+  const studyRows = activityRows
+    .filter((row) => row.event_type === 'StudySession')
+    .map((row) => {
+      const metadata = asObject(row.metadata);
+      return {
+        id: row.id,
+        started_at: row.ts,
+        minutes: Number(metadata.minutes || 0),
+        course_id: metadata.course_id || null,
+        topic_id: metadata.topic_id || null,
+        completed: true,
+      };
+    });
+  const completed = [...focusRows.filter((row) => Boolean(row.completed)), ...studyRows];
+  const taskById = new Map(taskRows.map((row) => [String(row.id), row]));
+  const courseById = new Map(courseRows.map((row) => [String(row.id), row]));
+  const courseName = (courseId: string) => String(courseById.get(courseId)?.name || 'بدون مادة');
+  const rowCourseId = (row: CloudRow) => String(row.course_id || taskById.get(String(row.task_id || ''))?.course_id || '');
+  const dateSeries = (count: number) => Array.from({ length: count }, (_, index) => {
+    const date = new Date(Date.now() - (count - index - 1) * 86400000).toISOString().slice(0, 10);
+    return date;
+  });
+  const minutesOn = (date: string) => completed
+    .filter((row) => String(row.started_at || '').startsWith(date))
+    .reduce((sum, row) => sum + Number(row.minutes || 0), 0);
+  const distribution = new Map<string, number>();
+  const from30 = Date.now() - 30 * 86400000;
+  for (const row of completed) {
+    if (new Date(String(row.started_at || 0)).getTime() < from30) continue;
+    const courseId = rowCourseId(row);
+    distribution.set(courseId, (distribution.get(courseId) || 0) + Number(row.minutes || 0));
+  }
+  const heatmap = dateSeries(35).map((date) => {
+    const byCourse = new Map<string, number>();
+    for (const row of completed.filter((item) => String(item.started_at || '').startsWith(date))) {
+      const courseId = rowCourseId(row);
+      byCourse.set(courseId, (byCourse.get(courseId) || 0) + Number(row.minutes || 0));
+    }
+    const courses = [...byCourse.entries()].map(([courseId, minutes]) => ({ course: courseName(courseId), minutes }));
+    return { date, total: courses.reduce((sum, item) => sum + item.minutes, 0), courses };
+  });
+  const topicRows = topics.map((topic) => ({
+    id: String(topic.id),
+    title: String(topic.title || 'موضوع'),
+    mastery: topic.done ? 100 : 0,
+    course_name: courseName(String(topic.course_id || '')),
+  }));
+  const recent = dateSeries(rangeDays);
+  const weekly = dateSeries(Math.min(14, rangeDays)).map((date) => ({ date, minutes: minutesOn(date) }));
+  const emptyTrend = recent.map((date) => ({ date, accuracy: null, attempts: 0 }));
+  const masteryTrend = recent.map((date) => ({ date, avg: null, topics: 0 }));
+  const activeDays = dateSeries(30).filter((date) => minutesOn(date) > 0).length;
+  const recentSessions = completed.filter((row) => new Date(String(row.started_at || 0)).getTime() >= from30);
+  return {
+    weekly,
+    subjectDistribution: [...distribution.entries()]
+      .map(([courseId, minutes]) => ({ courseId, courseName: courseName(courseId), minutes: Math.round(minutes) }))
+      .sort((a, b) => b.minutes - a.minutes),
+    accuracyTrend: emptyTrend,
+    masteryTrend,
+    heatmap,
+    weak: [],
+    strong: topicRows.filter((topic) => topic.mastery >= 65).slice(0, 5),
+    consistency: activeDays,
+    totalTopics: topicRows.length,
+    masteredTopics: topicRows.filter((topic) => topic.mastery >= 85).length,
+    focusAvg: recentSessions.length ? recentSessions.reduce((sum, row) => sum + Number(row.minutes || 0), 0) / recentSessions.length : 0,
+    mistakesAnalysis: null,
+  };
+}
+
+async function saveCloudStudySession(input: Record<string, unknown>) {
+  const minutes = Math.min(600, Math.max(1, Number(input.minutes || 0)));
+  const timestamp = now();
+  const row = await repo('activity_events', 'study-session-').create({
+    event_type: 'StudySession',
+    entity_type: 'study_session',
+    entity_id: input.topic_id || input.course_id || null,
+    ts: timestamp,
+    summary: `جلسة دراسة ${minutes} دقيقة`,
+    metadata: {
+      course_id: input.course_id || null,
+      topic_id: input.topic_id || null,
+      minutes,
+      type: input.type || 'study',
+      difficulty_felt: input.difficulty_felt || null,
+      understanding: input.understanding ?? null,
+    },
+  });
+  return {
+    id: row.id,
+    course_id: input.course_id || null,
+    topic_id: input.topic_id || null,
+    started_at: timestamp,
+    ended_at: timestamp,
+    minutes,
+    type: input.type || 'study',
+    difficulty_felt: input.difficulty_felt || null,
+    understanding: input.understanding ?? null,
+  };
+}
+
 async function dashboard() {
   const [taskRows, schedule, checkins, focus, goalRows, examRows, courseRows, links, suggestions, conversations, journals] = await Promise.all([
     repo('tasks').list(), repo('calendar_events').list(), repo('checkins').list(), repo('focus_sessions').list(),
@@ -731,6 +842,8 @@ export async function tryCloudRequest(path: string, method: Method, input?: unkn
   if (match && method === 'PUT') { const rows = await repo('checkins').list({ entry_date: match[1] }); return { handled: true, data: rows[0] ? await repo('checkins').update(String(rows[0].id), body) : await repo('checkins', 'ck-').create({ ...body, entry_date: match[1] }) }; }
 
   if (route === '/courses' && method === 'GET') return { handled: true, data: await courses() };
+  if (route === '/study/analytics' && method === 'GET') return { handled: true, data: await cloudStudyAnalytics(Number(url.searchParams.get('days') || 14)) };
+  if (route === '/study/sessions' && method === 'POST') return { handled: true, data: await saveCloudStudySession(body) };
   if (route === '/courses' && method === 'POST') return { handled: true, data: await repo('courses', 'course-').create({ name: body.name || 'مادة', code: body.code || null, credit_hours: body.credit_hours || 3, instructor: body.instructor || null, semester: body.semester || null, target_grade: body.target_grade || null, notes: body.notes || '', color: body.color || null }) };
   match = route.match(/^\/courses\/([^/]+)\/topics$/);
   if (match && method === 'POST') return { handled: true, data: await repo('course_topics', 'topic-').create({ course_id: match[1], title: body.title || 'موضوع', notes: body.notes || '', done: Boolean(body.done) }) };

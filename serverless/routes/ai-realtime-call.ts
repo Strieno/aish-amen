@@ -70,19 +70,19 @@ export default async function handler(req: any, res: any) {
         output: { voice, speed: 1 },
       },
     };
-    const form = new FormData();
-    form.set('sdp', sdp);
-    form.set('session', JSON.stringify(session));
     const upstream = await fetch(`${baseUrl}/realtime/calls`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${apiKey}` },
-      body: form,
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sdp, session }),
     });
     const answer = await upstream.text();
     if (!upstream.ok) {
       let detail = answer;
       try { detail = JSON.parse(answer)?.error?.message || answer; } catch { /* plain response */ }
       throw Object.assign(new Error(publicRealtimeError(upstream.status, detail)), { status: upstream.status });
+    }
+    if (!answer.trim().startsWith('v=0')) {
+      throw Object.assign(new Error('أعادت خدمة OpenAI جواب اتصال صوتي غير صالح. أعد المحاولة.'), { status: 502 });
     }
     return res.json({ ok: true, sdp: answer, model, voice });
   } catch (error) {
