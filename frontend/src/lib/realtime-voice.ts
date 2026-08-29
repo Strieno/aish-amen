@@ -29,6 +29,7 @@ interface RealtimeCallAnswer {
   sdp: string;
   model: string;
   voice: string;
+  session?: Record<string, unknown>;
 }
 
 const clean = (value: unknown) => String(value || '').replace(/\s+/g, ' ').trim();
@@ -76,6 +77,7 @@ export async function startRealtimeVoice(options: StartOptions): Promise<LiveVoi
   let flushTimer = 0;
   let flushRunning = false;
   let activeModel = 'gpt-realtime-2.1-mini';
+  let sessionConfig: Record<string, unknown> | undefined;
 
   const stop = () => {
     if (stopped) return;
@@ -139,7 +141,10 @@ export async function startRealtimeVoice(options: StartOptions): Promise<LiveVoi
   };
   stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
-  dataChannel.onopen = () => options.onState(muted ? 'muted' : 'listening');
+  dataChannel.onopen = () => {
+    if (sessionConfig) dataChannel.send(JSON.stringify({ type: 'session.update', session: sessionConfig }));
+    options.onState(muted ? 'muted' : 'listening');
+  };
   dataChannel.onmessage = (message) => {
     let event: any;
     try { event = JSON.parse(String(message.data || '{}')); } catch { return; }
@@ -183,6 +188,7 @@ export async function startRealtimeVoice(options: StartOptions): Promise<LiveVoi
       language: options.language || 'ar',
     });
     activeModel = answer.model || activeModel;
+    sessionConfig = answer.session;
     if (stopped) return { setMuted: () => {}, stop };
     await pc.setRemoteDescription({ type: 'answer', sdp: answer.sdp });
   } catch (error) {

@@ -70,10 +70,10 @@ export default async function handler(req: any, res: any) {
         output: { voice, speed: 1 },
       },
     };
-    const upstream = await fetch(`${baseUrl}/realtime/calls`, {
+    const upstream = await fetch(`${baseUrl}/realtime/calls?model=${encodeURIComponent(model)}`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sdp, session }),
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/sdp' },
+      body: sdp,
     });
     const answer = await upstream.text();
     if (!upstream.ok) {
@@ -84,7 +84,7 @@ export default async function handler(req: any, res: any) {
     if (!answer.trim().startsWith('v=0')) {
       throw Object.assign(new Error('أعادت خدمة OpenAI جواب اتصال صوتي غير صالح. أعد المحاولة.'), { status: 502 });
     }
-    return res.json({ ok: true, sdp: answer, model, voice });
+    return res.json({ ok: true, sdp: answer, model, voice, session });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'تعذر بدء المحادثة الصوتية.';
     const status = Number((error as any)?.status) || (/الخصوصية القصوى/.test(message) ? 403 : 502);

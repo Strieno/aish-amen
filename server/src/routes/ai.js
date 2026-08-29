@@ -1086,8 +1086,8 @@ r.post('/ai/realtime/call', async (req, res) => {
     },
   };
   try {
-    const headers = { ...provider.headers, Authorization: `Bearer ${provider.apiKey}`, 'Content-Type': 'application/json' };
-    const upstream = await fetchWithTimeout(`${provider.baseUrl}/realtime/calls`, { method: 'POST', headers, body: JSON.stringify({ sdp, session }) }, provider.timeoutMs);
+    const headers = { ...provider.headers, Authorization: `Bearer ${provider.apiKey}`, 'Content-Type': 'application/sdp' };
+    const upstream = await fetchWithTimeout(`${provider.baseUrl}/realtime/calls?model=${encodeURIComponent(model)}`, { method: 'POST', headers, body: sdp }, provider.timeoutMs);
     const answer = await upstream.text();
     if (!upstream.ok) {
       let detail = answer;
@@ -1097,7 +1097,7 @@ r.post('/ai/realtime/call', async (req, res) => {
       throw new Error(`OpenAI Realtime: ${String(detail).slice(0, 240)}`);
     }
     if (!answer.trim().startsWith('v=0')) throw new Error('أعادت خدمة OpenAI جواب اتصال صوتي غير صالح. أعد المحاولة.');
-    return res.json({ ok: true, sdp: answer, model, voice });
+    return res.json({ ok: true, sdp: answer, model, voice, session });
   } catch (error) {
     return res.status(502).json({ ok: false, error: error.message || 'تعذر بدء المحادثة الصوتية.' });
   }
