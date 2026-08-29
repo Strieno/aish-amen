@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync, statSync, copyFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, statSync, copyFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import { BACKUP_DIR, DOCS_DIR, AUDIO_DIR, ATTACH_DIR, DB_PATH, getDb, closeDb, openDb, rebuildFts, logEvent } from '../db/index.js';
 
@@ -40,8 +40,10 @@ export function createBackup() {
   const target = path.join(BACKUP_DIR, `backup-${stamp}`);
   mkdirSync(target, { recursive: true });
   const db = getDb();
-  const buffer = db.serialize();
-  writeFileSync(path.join(target, 'database.db'), buffer);
+  // node:sqlite DatabaseSync has no serialize(); VACUUM INTO writes a
+  // consistent on-disk snapshot (safe with WAL mode) to a fresh file.
+  const dbFile = path.join(target, 'database.db');
+  db.exec(`VACUUM INTO '${dbFile.replace(/'/g, "''")}'`);
   copyDir(DOCS_DIR, path.join(target, 'documents'));
   copyDir(AUDIO_DIR, path.join(target, 'audio'));
   copyDir(ATTACH_DIR, path.join(target, 'attachments'));
