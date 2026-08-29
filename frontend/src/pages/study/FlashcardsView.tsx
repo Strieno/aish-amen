@@ -3,6 +3,7 @@ import { Layers, Plus, Trash2 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { Button, Spinner } from '../../components/ui';
 import type { Flashcard } from '../../lib/study-types';
+import { localDateKey } from '../../lib/date';
 
 export default function FlashcardsView({ courseId, topicId }: { courseId?: string | null; topicId?: string | null }) {
   const [due, setDue] = useState<Flashcard[]>([]);
@@ -19,7 +20,8 @@ export default function FlashcardsView({ courseId, topicId }: { courseId?: strin
     setLoading(true);
     try {
       const cards = await api.get<Flashcard[]>('/study/flashcards' + (courseId ? `?course_id=${courseId}` : ''));
-      setDue(cards.filter((c) => !c.due_date || c.due_date <= new Date().toISOString().slice(0, 10)));
+      const today = localDateKey();
+      setDue(cards.filter((c) => !c.due_date || c.due_date <= today));
       setIndex(0);
       setFlipped(false);
     } catch {

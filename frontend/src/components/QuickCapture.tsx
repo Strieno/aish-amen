@@ -4,6 +4,7 @@ import { api } from '../lib/api';
 import { useT } from '../lib/i18n';
 import { Button, Field, Modal, Select, Spinner } from './ui';
 import VoiceInputButton from './VoiceInputButton';
+import { localDateKey } from '../lib/date';
 
 type CaptureType = 'task' | 'journal' | 'gratitude';
 
@@ -52,7 +53,7 @@ export default function QuickCapture({ open, onClose }: { open: boolean; onClose
         await api.post('/journal', {
           title: title.trim() || content.slice(0, 50),
           content,
-          entry_date: new Date().toISOString().slice(0, 10),
+          entry_date: localDateKey(),
           tags: [],
           mood: null,
           ai_access: true,

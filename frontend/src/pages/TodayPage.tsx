@@ -18,6 +18,7 @@ import { useProgressStore } from '../components/gamification/progress-store';
 import { useAiAction } from '../lib/useAiAction';
 import { entityIcon, entityRoute } from '../lib/entity-utils';
 import { primeSpeechPlayback, speakAutomatically } from '../lib/speech';
+import { localDateKey } from '../lib/date';
 
 const LEVEL_LABEL: Record<string, string> = {
   stable: 'today.stable',
@@ -51,7 +52,7 @@ export default function TodayPage() {
   const lastSpokenSuggestion = useRef('');
   const progress = useProgressStore((s) => s.snapshot);
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = localDateKey();
 
   const suggest = async (silent = false) => {
     if (!silent) primeSpeechPlayback();

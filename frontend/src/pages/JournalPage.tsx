@@ -10,6 +10,7 @@ import { Button, Card, EmptyState, Spinner, Toggle } from '../components/ui';
 import { useAiAction } from '../lib/useAiAction';
 import AiResultBox from '../components/AiResultBox';
 import RelatedPanel from '../components/RelatedPanel';
+import { localDateKey } from '../lib/date';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
@@ -37,7 +38,7 @@ export default function JournalPage() {
     selectedRef.current = selected;
   }, [selected]);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateKey();
 
   /** Persist the draft without touching React state (safe on unmount). */
   const persistRaw = useCallback(async (d: NonNullable<typeof draftRef.current>, sel: JournalEntry | null) => {

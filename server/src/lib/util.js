@@ -10,11 +10,15 @@ export function nowIso() {
   return new Date().toISOString();
 }
 
-// Days ago: 0 = today. Returns local date string YYYY-MM-DD.
-export function dateKey(offsetDays = 0) {
-  const d = new Date();
+// Local calendar date: 0 = today. Avoid toISOString(), which converts to UTC
+// and can move "today" to the previous/next day around local midnight.
+export function dateKey(offsetDays = 0, base = new Date()) {
+  const d = new Date(base);
   d.setDate(d.getDate() + offsetDays);
-  return d.toISOString().slice(0, 10);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 export function parseJson(value, fallback) {

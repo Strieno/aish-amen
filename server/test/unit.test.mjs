@@ -13,7 +13,7 @@ const settingsMod = await import('../src/services/settings.js');
 const memoryMod = await import('../src/services/memory.js');
 const knowledgeMod = await import('../src/services/knowledge.js');
 const backupMod = await import('../src/services/backup.js');
-const { estimateTokens, trimMessages, ftsQuery } = await import('../src/lib/util.js');
+const { estimateTokens, trimMessages, ftsQuery, dateKey } = await import('../src/lib/util.js');
 const promptMod = await import('../src/services/prompt-engine.js');
 const { getProvider, listProviders, createProviderFromRow } = await import('../src/providers/index.js');
 const { MockProvider } = await import('../src/providers/mock.js');
@@ -543,6 +543,23 @@ test('What\'s next? returns explainable actions', () => {
     assert.ok(a.title && a.reason, 'action has title + reason');
     assert.ok(a.route, 'action has a route');
   }
+});
+
+test('local date keys do not convert through UTC', () => {
+  const localLateNight = new Date(2026, 7, 29, 23, 30, 0);
+  assert.equal(dateKey(0, localLateNight), '2026-08-29');
+  assert.equal(dateKey(1, localLateNight), '2026-08-30');
+});
+
+test('What\'s next? prioritizes an active safety plan', () => {
+  dbMod.run("UPDATE safe_living_sessions SET status='ended'");
+  dbMod.run(
+    'INSERT INTO safe_living_sessions(id, plan_id, status, activated_at) VALUES (?,?,?,?)',
+    'safe-next-test', 'plan-low-energy', 'active', new Date().toISOString(),
+  );
+  const [first] = nextMod.whatsNext({ limit: 1 });
+  assert.equal(first?.key, 'safe');
+  dbMod.run("UPDATE safe_living_sessions SET status='ended' WHERE id='safe-next-test'");
 });
 
 test('Discoveries return gentle correlational insights', () => {

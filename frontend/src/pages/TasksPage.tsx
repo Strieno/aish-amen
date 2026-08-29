@@ -9,6 +9,7 @@ import { Badge, Button, Card, EmptyState, Field, Modal, Select, Spinner, Toggle 
 import { useAiAction } from '../lib/useAiAction';
 import AiResultBox from '../components/AiResultBox';
 import { celebrate } from '../components/visualizations';
+import { localDateKey } from '../lib/date';
 
 const STATUS_LABEL: Record<string, string> = {
   inbox: 'tasks.inbox',
@@ -251,7 +252,7 @@ export default function TasksPage() {
                     {task.project_name && <Badge tone="brand">{task.project_name}</Badge>}
                     {task.course_name && <Badge tone="brand">{task.course_name}</Badge>}
                     {task.due_date && (
-                      <span className={`text-xs ${task.due_date < new Date().toISOString().slice(0, 10) ? 'font-bold text-danger' : 'text-ink-faint'}`}>
+                      <span className={`text-xs ${task.due_date < localDateKey() ? 'font-bold text-danger' : 'text-ink-faint'}`}>
                         {task.due_date}
                       </span>
                     )}
