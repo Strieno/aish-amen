@@ -78,8 +78,12 @@ r.get('/study/plan/today', (_req, res) => {
 r.post('/study/plan/generate', (req, res) => {
   const minutes = Math.min(600, Math.max(60, Number(req.body?.availableMinutes) || 240));
   const items = engine.generateWeeklyPlan({ availableMinutes: minutes });
+  const from = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const to = new Date(Date.now() + 6 * 86400000).toISOString().slice(0, 10);
+  // Reset the week's plan so regenerating never duplicates.
+  run('DELETE FROM study_plan_items WHERE date BETWEEN ? AND ?', from, to);
   for (const item of items) {
-    run('INSERT OR REPLACE INTO study_plan_items(id, date, course_id, topic_id, minutes, reason) VALUES (?,?,?,?,?,?)', uid('plan-'), item.date, item.courseId, item.topicId, item.minutes, item.reason);
+    run('INSERT INTO study_plan_items(id, date, course_id, topic_id, minutes, reason) VALUES (?,?,?,?,?,?)', uid('plan-'), item.date, item.courseId, item.topicId, item.minutes, item.reason);
   }
   res.json({ items: items.length });
 });

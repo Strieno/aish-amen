@@ -5,63 +5,54 @@
  */
 
 import { all, get, run } from '../db/index.js';
-import { uid, nowIso } from '../lib/util.js';
+import { nowIso } from '../lib/util.js';
 
 const DAY = 86400000;
 
-/* ---------------- XP ---------------- */
-
-const EVENT_XP = {
-  TaskCreated: 5,
-  TaskCompleted: 12,
-  JournalEntryCreated: 12,
-  CheckInCreated: 10,
-  FocusSessionCompleted: 15,
-  ExamGradeRecorded: 25,
-  ExamCreated: 5,
-  GoalProgressChanged: 10,
-  MilestoneCompleted: 20,
-  WorkNoteCreated: 8,
-  SafePlanActivated: 15,
-  CourseCreated: 6,
-  MemoryCreated: 5,
-  LinkCreated: 3,
-  ConversationMessageCreated: 2,
-};
-
 export function computeXp() {
-  const rows = all('SELECT event_type FROM activity_events');
-  let xp = 0;
-  for (const row of rows) xp += EVENT_XP[row.event_type] || 0;
+  const xpFromEvents = all(
+    `SELECT COALESCE(SUM(
+       CASE event_type
+         WHEN 'TaskCreated' THEN 5 WHEN 'TaskCompleted' THEN 12
+         WHEN 'JournalEntryCreated' THEN 12 WHEN 'CheckInCreated' THEN 10
+         WHEN 'FocusSessionCompleted' THEN 15 WHEN 'ExamGradeRecorded' THEN 25
+         WHEN 'ExamCreated' THEN 5 WHEN 'GoalProgressChanged' THEN 10
+         WHEN 'MilestoneCompleted' THEN 20 WHEN 'WorkNoteCreated' THEN 8
+         WHEN 'SafePlanActivated' THEN 15 WHEN 'CourseCreated' THEN 6
+         WHEN 'MemoryCreated' THEN 5 WHEN 'LinkCreated' THEN 3
+         WHEN 'ConversationMessageCreated' THEN 2 ELSE 0 END
+     ),0) AS xp FROM activity_events`,
+  )[0]?.xp || 0;
 
-  // Study sessions: base + minutes bonus.
-  const study = all('SELECT COALESCE(SUM(minutes),0) AS m, COUNT(*) AS n FROM study_sessions');
-  xp += (study[0]?.n || 0) * 10 + Math.floor((study[0]?.m || 0) / 10);
-
-  // Correct quiz answers.
+  const study = all('SELECT COALESCE(SUM(minutes),0) AS m, COUNT(*) AS n FROM study_sessions')[0];
   const quiz = all('SELECT COUNT(*) AS n FROM quiz_attempts WHERE correct = 1')[0]?.n || 0;
-  xp += quiz * 5;
-
-  // Flashcard reviews.
   const reviews = all('SELECT COUNT(*) AS n FROM flashcards WHERE last_reviewed IS NOT NULL')[0]?.n || 0;
-  xp += reviews * 2;
 
-  return xp;
+  return xpFromEvents + (study?.n || 0) * 10 + Math.floor((study?.m || 0) / 10) + quiz * 5 + reviews * 2;
 }
 
 export function xpToday() {
-  const today = new Date().toISOString().slice(0, 10);
-  const from = `${today}T00:00:00`;
-  let xp = 0;
-  const rows = all('SELECT event_type FROM activity_events WHERE ts >= ?', from);
-  for (const row of rows) xp += EVENT_XP[row.event_type] || 0;
-  const study = all('SELECT COALESCE(SUM(minutes),0) AS m, COUNT(*) AS n FROM study_sessions WHERE started_at >= ?', from);
-  xp += (study[0]?.n || 0) * 10 + Math.floor((study[0]?.m || 0) / 10);
-  const quiz = all('SELECT COUNT(*) AS n FROM quiz_attempts WHERE correct = 1 AND created_at >= ?', today)[0]?.n || 0;
-  xp += quiz * 5;
-  const reviews = all('SELECT COUNT(*) AS n FROM flashcards WHERE last_reviewed >= ?', today)[0]?.n || 0;
-  xp += reviews * 2;
-  return xp;
+  const timestamp = new Date().toISOString().slice(0, 10);
+  const xpFromEvents = all(
+    `SELECT COALESCE(SUM(
+       CASE event_type
+         WHEN 'TaskCreated' THEN 5 WHEN 'TaskCompleted' THEN 12
+         WHEN 'JournalEntryCreated' THEN 12 WHEN 'CheckInCreated' THEN 10
+         WHEN 'FocusSessionCompleted' THEN 15 WHEN 'ExamGradeRecorded' THEN 25
+         WHEN 'ExamCreated' THEN 5 WHEN 'GoalProgressChanged' THEN 10
+         WHEN 'MilestoneCompleted' THEN 20 WHEN 'WorkNoteCreated' THEN 8
+         WHEN 'SafePlanActivated' THEN 15 WHEN 'CourseCreated' THEN 6
+         WHEN 'MemoryCreated' THEN 5 WHEN 'LinkCreated' THEN 3
+         WHEN 'ConversationMessageCreated' THEN 2 ELSE 0 END
+     ),0) AS xp FROM activity_events WHERE ts >= ?`,
+    `${timestamp}T00:00:00`,
+  )[0]?.xp || 0;
+
+  const study = all('SELECT COALESCE(SUM(minutes),0) AS m, COUNT(*) AS n FROM study_sessions WHERE started_at >= ?', `${timestamp}T00:00:00`)[0];
+  const quiz = all('SELECT COUNT(*) AS n FROM quiz_attempts WHERE correct = 1 AND created_at >= ?', timestamp)[0]?.n || 0;
+  const reviews = all('SELECT COUNT(*) AS n FROM flashcards WHERE last_reviewed >= ?', timestamp)[0]?.n || 0;
+
+  return xpFromEvents + (study?.n || 0) * 10 + Math.floor((study?.m || 0) / 10) + quiz * 5 + reviews * 2;
 }
 
 /* ---------------- Levels ---------------- */

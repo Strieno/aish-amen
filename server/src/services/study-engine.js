@@ -7,8 +7,7 @@
  */
 
 import { all, get, run } from '../db/index.js';
-import { uid, nowIso, dateKey } from '../lib/util.js';
-import { emitDomainEvent, EVENT_TYPES } from './events.js';
+import { uid, nowIso } from '../lib/util.js';
 
 const DAY = 86400000;
 export const DIFFICULTY_LEVELS = ['foundation', 'easy', 'medium', 'hard', 'exam'];
@@ -463,23 +462,30 @@ export function buildStudyContext({ courseId, topicId, question = '' } = {}) {
 /* ---------------- Weekly plan generation ---------------- */
 
 export function generateWeeklyPlan({ availableMinutes = 240 } = {}) {
-  const recommendations = recommendNow({ limit: 10 });
+  const recommendations = recommendNow({ limit: 12 });
   if (!recommendations.length) return [];
   const perDay = Math.max(20, Math.round(availableMinutes / 7));
-  const slots = Math.max(3, Math.round(perDay / 25));
+  // Each slot is ~25 min, cap the number of slots to keep days realistic.
+  const slots = Math.min(4, Math.max(1, Math.round(perDay / 25)));
   const items = [];
+  const usedPerTopic = new Set();
+
   for (let day = 0; day < 7; day += 1) {
     const date = new Date(Date.now() + day * DAY).toISOString().slice(0, 10);
-    const dayPlan = recommendations.slice(day % recommendations.length, (day % recommendations.length) + slots);
-    for (const rec of dayPlan.slice(0, slots)) {
+    const candidates = recommendations.filter((r) => !usedPerTopic.has(r.topicId));
+    const dayPlan = candidates.slice(0, slots);
+    if (!dayPlan.length) break;
+    const slotMinutes = Math.min(45, Math.max(15, Math.round(perDay / Math.max(1, dayPlan.length))));
+    for (const rec of dayPlan) {
+      usedPerTopic.add(rec.topicId);
       items.push({
         date,
         courseId: rec.courseId,
         topicId: rec.topicId,
-        minutes: Math.max(15, Math.round(25 * (slots - items.length % Math.max(1, slots)))),
+        minutes: slotMinutes,
         reason: rec.reasons.join(' + '),
       });
     }
   }
-  return items.slice(0, 21);
+  return items;
 }
