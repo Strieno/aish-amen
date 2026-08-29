@@ -86,11 +86,11 @@ export default function EntityChip({
             <>
               <p className="truncate text-sm font-bold text-ink">{preview.title}</p>
               {preview.sub && <p className="text-xs text-ink-faint">{preview.sub}</p>}
-              {preview.links.length > 0 && (
+              {(preview.links || []).length > 0 && (
                 <div className="mt-2 border-t border-line pt-2">
-                  <p className="mb-1 text-[10px] font-bold text-ink-faint">{t('graph.relatedTo')} ({preview.links.length})</p>
+                  <p className="mb-1 text-[10px] font-bold text-ink-faint">{t('graph.relatedTo')} ({(preview.links || []).length})</p>
                   <ul className="space-y-0.5">
-                    {preview.links.slice(0, 3).map((l) => (
+                    {(preview.links || []).slice(0, 3).map((l) => (
                       <li key={`${l.type}:${l.id}`} className="truncate text-xs text-ink-soft">
                         • {l.title}
                       </li>

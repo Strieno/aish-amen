@@ -14,7 +14,9 @@ export default function InsightsPage() {
   if (loading) return <Spinner className="mx-auto mt-10 block h-8 w-8" />;
   if (!data) return <EmptyState text={t('common.noData')} />;
 
-  const maxSessions = Math.max(1, ...data.sleepStudy.map((x) => x.sessions));
+  const postponedTasks = Array.isArray(data.postponedTasks) ? data.postponedTasks : [];
+  const sleepStudy = Array.isArray(data.sleepStudy) ? data.sleepStudy : [];
+  const maxSessions = Math.max(1, ...sleepStudy.map((x) => x.sessions));
 
   return (
     <div className="space-y-5">
@@ -33,11 +35,11 @@ export default function InsightsPage() {
         <Stat icon={Activity} value={data.productiveHour || '—'} label={t('insights.productiveHour')} />
       </div>
 
-      {data.postponedTasks.length > 0 && (
+      {postponedTasks.length > 0 && (
         <Card>
           <h2 className="mb-2 text-sm font-bold text-ink">{t('insights.postponed')}</h2>
           <ul className="divide-y divide-line">
-            {data.postponedTasks.map((p, i) => (
+            {postponedTasks.map((p, i) => (
               <li key={i} className="flex items-center justify-between py-2 text-sm">
                 <span className="text-ink">{p.title}</span>
                 <span className="text-xs text-danger">{p.due_date}</span>
@@ -47,14 +49,14 @@ export default function InsightsPage() {
         </Card>
       )}
 
-      {data.sleepStudy.length > 0 && (
+      {sleepStudy.length > 0 && (
         <Card>
           <h2 className="mb-3 text-sm font-bold text-ink">{t('insights.sleepStudy')}</h2>
           <p className="mb-3 text-xs text-ink-faint">
             في الأيام التي سجلت فيها نومًا أكثر، أتممت أيضًا جلسات دراسة أكثر. هذه ملاحظة وصفية فقط، وليست ادعاءً بعلاقة سببية.
           </p>
           <div className="flex h-28 items-end gap-2">
-            {data.sleepStudy.map((x, i) => (
+            {sleepStudy.map((x, i) => (
               <div key={i} className="flex flex-1 flex-col items-center gap-1">
                 <span className="text-[10px] text-ink-faint">{x.sessions}</span>
                 <div
@@ -68,7 +70,7 @@ export default function InsightsPage() {
         </Card>
       )}
 
-      {data.postponedTasks.length === 0 && (
+      {postponedTasks.length === 0 && (
         <p className="text-sm text-ink-faint">{t('common.noData')}</p>
       )}
     </div>

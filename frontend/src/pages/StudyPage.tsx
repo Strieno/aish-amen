@@ -3,7 +3,7 @@ import { BookMarked, CalendarClock, Plus, Search, Sparkles, Target, Timer, Trend
 import { api } from '../lib/api';
 import { useApi } from '../lib/useApi';
 import { useT } from '../lib/i18n';
-import type { CourseDetail, CourseSummary, StudyDashboard } from '../lib/study-types';
+import { normalizeCourseDetail, type CourseDetail, type CourseSummary, type StudyDashboard } from '../lib/study-types';
 import { Badge, Button, Card, EmptyState, Field, Modal, Spinner } from '../components/ui';
 import { PageBackdrop, celebrate } from '../components/visualizations';
 import SessionFlow from './study/SessionFlow';
@@ -59,8 +59,8 @@ export default function StudyPage() {
       setDetail(null);
       return;
     }
-    const d = await api.get<CourseDetail>(`/courses/${id}`);
-    setDetail(d);
+    const d = await api.get<CourseDetail | null>(`/courses/${id}`);
+    setDetail(d ? normalizeCourseDetail(d) : null);
   };
 
   useEffect(() => {

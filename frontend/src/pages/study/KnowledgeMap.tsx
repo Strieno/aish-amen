@@ -72,10 +72,11 @@ export function AIVisualization({ visual }: { visual: { type: string; title?: st
   }
 
   if (type === 'comparison' && v.columns) {
+    const columns = Array.isArray(v.columns) ? v.columns : [];
     return (
-      <div className="grid gap-2" style={{ gridTemplateColumns: `1.2fr repeat(${v.columns.length}, 1fr)` }}>
+      <div className="grid gap-2" style={{ gridTemplateColumns: `1.2fr repeat(${columns.length}, 1fr)` }}>
         <div />
-        {v.columns.map((c, i) => <p key={i} className="rounded-lg bg-brand-soft px-2 py-1.5 text-center text-xs font-bold text-brand-dark">{c}</p>)}
+        {columns.map((c, i) => <p key={i} className="rounded-lg bg-brand-soft px-2 py-1.5 text-center text-xs font-bold text-brand-dark">{c}</p>)}
         {(v.rows || []).map((row, i) => {
           const label = Array.isArray(row) ? String(row[0] ?? '') : row.label || '';
           const values = Array.isArray(row) ? row.slice(1) : row.values || [];

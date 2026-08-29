@@ -91,13 +91,14 @@ export default function KnowledgePage() {
       ) : (bases || []).length === 0 ? (
         <EmptyState text={t('knowledge.noBases')} />
       ) : (
-        (bases || []).map((kb) => (
-          <Card key={kb.id}>
+        (bases || []).map((kb) => {
+          const documents = Array.isArray(kb.documents) ? kb.documents : [];
+          return <Card key={kb.id}>
             <div className="mb-2 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Library className="h-4 w-4 text-brand-dark" />
                 <h2 className="font-bold text-ink">{kb.name}</h2>
-                <Badge tone="neutral">{kb.documents.length} {t('knowledge.documents')}</Badge>
+                <Badge tone="neutral">{documents.length} {t('knowledge.documents')}</Badge>
               </div>
               <div className="flex items-center gap-1">
                 <button onClick={() => { setImportTarget(kb.id); fileRef.current?.click(); }} className="btn-icon !h-8 !w-8" title={t('knowledge.import')}>
@@ -108,11 +109,11 @@ export default function KnowledgePage() {
                 </button>
               </div>
             </div>
-            {kb.documents.length === 0 ? (
+            {documents.length === 0 ? (
               <p className="text-sm text-ink-faint">{t('common.none')}</p>
             ) : (
               <ul className="divide-y divide-line">
-                {kb.documents.map((d) => (
+                {documents.map((d) => (
                   <li key={d.id} className="flex items-center gap-3 py-2">
                     <FileText className="h-4 w-4 shrink-0 text-ink-faint" />
                     <span className="min-w-0 flex-1 truncate text-sm text-ink">{d.filename}</span>
@@ -122,8 +123,8 @@ export default function KnowledgePage() {
                 ))}
               </ul>
             )}
-          </Card>
-        ))
+          </Card>;
+        })
       )}
 
       <input ref={fileRef} type="file" accept=".txt,.md,.json,.csv,.pdf" className="hidden" onChange={(e) => e.target.files?.[0] && importFile(e.target.files[0])} />

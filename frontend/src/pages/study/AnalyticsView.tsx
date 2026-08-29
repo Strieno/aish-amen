@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { BarChart3 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { Spinner } from '../../components/ui';
-import type { AnalyticsData } from '../../lib/study-types';
+import { normalizeAnalyticsData, type AnalyticsData } from '../../lib/study-types';
 
 function Bars({ data, height = 90 }: { data: { label: string; value: number; color?: string }[]; height?: number }) {
   const max = Math.max(1, ...data.map((d) => d.value));
@@ -44,7 +44,7 @@ export default function AnalyticsView() {
   const [data, setData] = useState<AnalyticsData | null>(null);
 
   useEffect(() => {
-    api.get<AnalyticsData>('/study/analytics?days=14').then(setData).catch(() => setData(null));
+    api.get<AnalyticsData>('/study/analytics?days=14').then((value) => setData(normalizeAnalyticsData(value))).catch(() => setData(null));
   }, []);
 
   if (!data) return <Spinner className="mx-auto my-8 block h-6 w-6" />;

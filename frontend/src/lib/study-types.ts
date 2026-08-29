@@ -172,3 +172,38 @@ export interface AnalyticsData {
   focusAvg: number;
   mistakesAnalysis: string | null;
 }
+
+/** Keep study screens resilient to partial cloud rows and older cached data. */
+export function normalizeCourseDetail(value: CourseDetail): CourseDetail {
+  const topics = Array.isArray(value?.topics) ? value.topics : [];
+  return {
+    ...value,
+    mastery_avg: Number(value?.mastery_avg || 0),
+    topics,
+    exams: Array.isArray(value?.exams) ? value.exams : [],
+    notes: Array.isArray(value?.notes) ? value.notes : [],
+    flashcards: Array.isArray(value?.flashcards) ? value.flashcards : [],
+    sessions: Array.isArray(value?.sessions) ? value.sessions : [],
+    mistakes: Array.isArray(value?.mistakes) ? value.mistakes : [],
+    topics_count: Number(value?.topics_count ?? topics.length),
+    topics_done: Number(value?.topics_done ?? topics.filter((topic) => Boolean(topic.done)).length),
+  };
+}
+
+export function normalizeAnalyticsData(value: AnalyticsData): AnalyticsData {
+  return {
+    ...value,
+    weekly: Array.isArray(value?.weekly) ? value.weekly : [],
+    subjectDistribution: Array.isArray(value?.subjectDistribution) ? value.subjectDistribution : [],
+    accuracyTrend: Array.isArray(value?.accuracyTrend) ? value.accuracyTrend : [],
+    masteryTrend: Array.isArray(value?.masteryTrend) ? value.masteryTrend : [],
+    heatmap: Array.isArray(value?.heatmap) ? value.heatmap : [],
+    weak: Array.isArray(value?.weak) ? value.weak : [],
+    strong: Array.isArray(value?.strong) ? value.strong : [],
+    consistency: Number(value?.consistency || 0),
+    totalTopics: Number(value?.totalTopics || 0),
+    masteredTopics: Number(value?.masteredTopics || 0),
+    focusAvg: Number(value?.focusAvg || 0),
+    mistakesAnalysis: value?.mistakesAnalysis || null,
+  };
+}

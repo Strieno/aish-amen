@@ -133,6 +133,34 @@ async function courses() {
   }));
 }
 
+async function cloudCourseDetail(courseId: string) {
+  const course = await repo('courses').get(courseId);
+  if (!course) return null;
+  const [topics, exams, taskRows] = await Promise.all([
+    repo('course_topics').list({ course_id: courseId }),
+    repo('exams').list({ course_id: courseId }),
+    repo('tasks').list({ course_id: courseId }),
+  ]);
+  const mastery = topics.map((topic) => Number(topic.mastery || 0));
+  return {
+    ...course,
+    mastery_avg: mastery.length ? Math.round(mastery.reduce((sum, score) => sum + score, 0) / mastery.length) : 0,
+    mastered_count: mastery.filter((score) => score >= 85).length,
+    weak_count: mastery.filter((score) => score > 0 && score < 45).length,
+    topics_count: topics.length,
+    topics_done: topics.filter((topic) => Boolean(topic.done)).length,
+    topics,
+    exams,
+    tasks: taskRows,
+    // Advanced study tables are local-only in the current cloud schema. Keep
+    // the API contract stable so partial cloud data never crashes the page.
+    notes: [],
+    flashcards: [],
+    sessions: [],
+    mistakes: [],
+  };
+}
+
 async function dashboard() {
   const [taskRows, schedule, checkins, focus, goalRows, examRows, courseRows, links, suggestions, conversations, journals] = await Promise.all([
     repo('tasks').list(), repo('calendar_events').list(), repo('checkins').list(), repo('focus_sessions').list(),
@@ -678,7 +706,7 @@ export async function tryCloudRequest(path: string, method: Method, input?: unkn
   match = route.match(/^\/courses\/([^/]+)\/topics$/);
   if (match && method === 'POST') return { handled: true, data: await repo('course_topics', 'topic-').create({ course_id: match[1], title: body.title || 'موضوع', notes: body.notes || '', done: Boolean(body.done) }) };
   match = route.match(/^\/courses\/([^/]+)$/);
-  if (match && method === 'GET') { const course = await repo('courses').get(match[1]); if (!course) return { handled: true, data: null }; const [topics, exams, taskRows] = await Promise.all([repo('course_topics').list({ course_id: match[1] }), repo('exams').list({ course_id: match[1] }), repo('tasks').list({ course_id: match[1] })]); return { handled: true, data: { ...course, topics, exams, tasks: taskRows } }; }
+  if (match && method === 'GET') return { handled: true, data: await cloudCourseDetail(match[1]) };
   if (match && method === 'PUT') return { handled: true, data: await repo('courses').update(match[1], body) };
   if (match && method === 'DELETE') return { handled: true, data: await repo('courses').delete(match[1]) };
   match = route.match(/^\/topics\/([^/]+)$/);

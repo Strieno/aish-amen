@@ -72,6 +72,17 @@ export default function SmartContextPanel({ open, onClose }: { open: boolean; on
 
   if (!open) return null;
 
+  const safeData = data ? {
+    ...data,
+    related: Array.isArray(data.related) ? data.related : [],
+    tasks: Array.isArray(data.tasks) ? data.tasks : [],
+    goals: Array.isArray(data.goals) ? data.goals : [],
+    memories: Array.isArray(data.memories) ? data.memories : [],
+    deadlines: Array.isArray(data.deadlines) ? data.deadlines : [],
+    conversations: Array.isArray(data.conversations) ? data.conversations : [],
+    activity: Array.isArray(data.activity) ? data.activity : [],
+  } : null;
+
   return (
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
@@ -90,68 +101,68 @@ export default function SmartContextPanel({ open, onClose }: { open: boolean; on
         <div className="flex-1 space-y-4 overflow-y-auto p-4">
           {loading ? (
             <Spinner className="mx-auto mt-10 block h-6 w-6" />
-          ) : !data || data.related.length + data.tasks.length + data.goals.length + data.memories.length + data.deadlines.length + data.activity.length === 0 ? (
+          ) : !safeData || safeData.related.length + safeData.tasks.length + safeData.goals.length + safeData.memories.length + safeData.deadlines.length + safeData.activity.length === 0 ? (
             <p className="mt-10 text-center text-sm text-ink-faint">{t('smart.empty')}</p>
           ) : (
             <>
-              {data.focus && (
+              {safeData.focus && (
                 <div className="rounded-xl bg-brand-soft p-3">
                   <p className="text-[11px] font-bold text-ink-faint">تركيز</p>
-                  <p className="truncate text-sm font-bold text-ink">{data.focus.title}</p>
+                  <p className="truncate text-sm font-bold text-ink">{safeData.focus.title}</p>
                 </div>
               )}
 
-              {data.related.length > 0 && (
+              {safeData.related.length > 0 && (
                 <Section title={t('smart.related')} icon={Link2}>
-                  {data.related.map((r) => (
+                  {safeData.related.map((r) => (
                     <ItemRow key={r.link_id} type={r.type} id={r.id} title={r.title} sub={r.relationship_type} />
                   ))}
                 </Section>
               )}
 
-              {data.deadlines.length > 0 && (
+              {safeData.deadlines.length > 0 && (
                 <Section title={t('smart.deadlines')} icon={CalendarClock}>
-                  {data.deadlines.map((d) => (
+                  {safeData.deadlines.map((d) => (
                     <ItemRow key={`${d.type}:${d.id}`} type={d.type} id={d.id} title={d.title} sub={d.sub} />
                   ))}
                 </Section>
               )}
 
-              {data.tasks.length > 0 && (
+              {safeData.tasks.length > 0 && (
                 <Section title={t('smart.tasks')} icon={CheckCircle2}>
-                  {data.tasks.map((task) => (
+                  {safeData.tasks.map((task) => (
                     <ItemRow key={task.id} type="task" id={task.id} title={task.title} sub={task.sub} />
                   ))}
                 </Section>
               )}
 
-              {data.goals.length > 0 && (
+              {safeData.goals.length > 0 && (
                 <Section title={t('smart.goals')} icon={Target}>
-                  {data.goals.map((g) => (
+                  {safeData.goals.map((g) => (
                     <ItemRow key={g.id} type="goal" id={g.id} title={g.title} sub={g.sub} />
                   ))}
                 </Section>
               )}
 
-              {data.memories.length > 0 && (
+              {safeData.memories.length > 0 && (
                 <Section title={t('smart.memories')} icon={Brain}>
-                  {data.memories.map((m) => (
+                  {safeData.memories.map((m) => (
                     <ItemRow key={m.id} type="memory" id={m.id} title={m.title} sub={m.sub} />
                   ))}
                 </Section>
               )}
 
-              {data.conversations.length > 0 && (
+              {safeData.conversations.length > 0 && (
                 <Section title={t('smart.conversations')} icon={MessageCircle}>
-                  {data.conversations.map((c) => (
+                  {safeData.conversations.map((c) => (
                     <ItemRow key={c.id} type="conversation" id={c.id} title={c.title} sub={c.sub} />
                   ))}
                 </Section>
               )}
 
-              {data.activity.length > 0 && (
+              {safeData.activity.length > 0 && (
                 <Section title={t('smart.activity')} icon={History}>
-                  {data.activity.map((a) => (
+                  {safeData.activity.map((a) => (
                     <li key={a.id} className="flex items-start gap-2 text-xs">
                       <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-accent" />
                       <span className="min-w-0 flex-1">

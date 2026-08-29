@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { BookMarked, CalendarClock, Check, Layers, Map as MapIcon, NotebookPen, Plus, Trash2 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { Badge, Button, Card, EmptyState, Field, Modal, Select } from '../../components/ui';
-import type { CourseDetail, Topic } from '../../lib/study-types';
+import { normalizeCourseDetail, type CourseDetail, type Topic } from '../../lib/study-types';
 import FlashcardsView from './FlashcardsView';
 import PracticeEngine from './PracticeEngine';
 import KnowledgeMap from './KnowledgeMap';
@@ -14,6 +14,7 @@ const STATE_COLOR: Record<string, string> = {
 };
 
 export default function CourseCockpit({ detail, onRefetch }: { detail: CourseDetail; onRefetch: () => void }) {
+  const course = normalizeCourseDetail(detail);
   const [tab, setTab] = useState<'overview' | 'topics' | 'notes' | 'cards' | 'practice' | 'exams' | 'map' | 'tutor'>('overview');
   const [aiVisual, setAiVisual] = useState<Parameters<typeof KnowledgeMap>[0]['aiVisual']>(null);
   const [newTopic, setNewTopic] = useState('');
@@ -85,7 +86,7 @@ export default function CourseCockpit({ detail, onRefetch }: { detail: CourseDet
                 <span className="absolute inset-0 grid place-items-center text-lg font-extrabold text-ink">{detail.mastery_avg}%</span>
               </div>
               <div className="space-y-1 text-xs text-ink-soft">
-                <p>مواضيع: {detail.topics.length} ({detail.topics.filter((t) => t.done).length} مكتملة)</p>
+                <p>مواضيع: {course.topics.length} ({course.topics.filter((t) => t.done).length} مكتملة)</p>
                 <p>متقن: {detail.mastered_count ?? 0} • ضعيف: {detail.weak_count ?? 0}</p>
                 <p>ساعات الدراسة: {detail.study_hours ?? 0} ساعة</p>
               </div>
@@ -94,10 +95,10 @@ export default function CourseCockpit({ detail, onRefetch }: { detail: CourseDet
 
           <Card className="!p-4">
             <p className="mb-2 text-sm font-bold text-ink">الخطوة التالية المقترحة</p>
-            {detail.topics.length ? (
+            {course.topics.length ? (
               (() => {
-                const weak = detail.topics.filter((t) => Number(t.mastery || 0) < 45 && Number(t.mastery || 0) > 0);
-                const target = weak[0] || detail.topics.find((t) => !t.done) || detail.topics[0];
+                const weak = course.topics.filter((t) => Number(t.mastery || 0) < 45 && Number(t.mastery || 0) > 0);
+                const target = weak[0] || course.topics.find((t) => !t.done) || course.topics[0];
                 return (
                   <div>
                     <p className="text-sm text-ink">{target.title}</p>
@@ -113,22 +114,22 @@ export default function CourseCockpit({ detail, onRefetch }: { detail: CourseDet
             )}
           </Card>
 
-          {detail.mistakes.length > 0 && (
+          {course.mistakes.length > 0 && (
             <Card className="!p-4 md:col-span-2">
               <p className="mb-2 text-sm font-bold text-ink">أخطاء متكررة في هذه المادة</p>
               <ul className="space-y-1">
-                {detail.mistakes.slice(0, 4).map((m) => (
+                {course.mistakes.slice(0, 4).map((m) => (
                   <li key={m.id} className="text-xs text-ink-soft">• {m.question.slice(0, 80)} ×{m.times}</li>
                 ))}
               </ul>
             </Card>
           )}
 
-          {detail.sessions.length > 0 && (
+          {course.sessions.length > 0 && (
             <Card className="!p-4 md:col-span-2">
               <p className="mb-2 text-sm font-bold text-ink">آخر الجلسات</p>
               <ul className="space-y-1">
-                {detail.sessions.slice(0, 5).map((s) => (
+                {course.sessions.slice(0, 5).map((s) => (
                   <li key={s.id} className="flex justify-between text-xs text-ink-soft">
                     <span>{s.started_at.slice(0, 16)} — {s.topic_title || 'عام'} ({s.minutes}د)</span>
                     {s.understanding != null && <Badge tone="brand">فهم {s.understanding}/5</Badge>}
@@ -150,7 +151,7 @@ export default function CourseCockpit({ detail, onRefetch }: { detail: CourseDet
             </div>
           </div>
           <ul className="space-y-1.5">
-            {detail.topics.map((t) => {
+            {course.topics.map((t) => {
               const state = masteryState(Number(t.mastery || 0));
               return (
                 <li key={t.id} className="flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-elevated">
@@ -173,7 +174,7 @@ export default function CourseCockpit({ detail, onRefetch }: { detail: CourseDet
                 </li>
               );
             })}
-            {!detail.topics.length && <li className="text-sm text-ink-faint">لا توجد مواضيع بعد.</li>}
+            {!course.topics.length && <li className="text-sm text-ink-faint">لا توجد مواضيع بعد.</li>}
           </ul>
         </Card>
       )}
@@ -183,9 +184,9 @@ export default function CourseCockpit({ detail, onRefetch }: { detail: CourseDet
           <div className="flex justify-end">
             <Button variant="ghost" className="!px-3 !py-1.5 text-xs" onClick={() => setShowNote(true)}><Plus className="h-3.5 w-3.5" /> ملاحظة جديدة</Button>
           </div>
-          {detail.notes.length ? (
+          {course.notes.length ? (
             <div className="grid gap-3 md:grid-cols-2">
-              {detail.notes.map((n) => (
+              {course.notes.map((n) => (
                 <Card key={n.id} className="!p-4">
                   <div className="mb-1 flex items-center justify-between">
                     <p className="text-sm font-bold text-ink">{n.title}</p>
@@ -212,9 +213,9 @@ export default function CourseCockpit({ detail, onRefetch }: { detail: CourseDet
             <p className="text-sm font-bold text-ink">الامتحانات</p>
             <Button variant="ghost" className="!px-3 !py-1.5 text-xs" onClick={() => setShowExam(true)}><Plus className="h-3.5 w-3.5" /> إضافة اختبار</Button>
           </div>
-          {detail.exams.length ? (
+          {course.exams.length ? (
             <ul className="divide-y divide-line">
-              {detail.exams.map((e) => (
+              {course.exams.map((e) => (
                 <li key={e.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                   <div>
                     <p className="text-sm font-semibold text-ink">{e.title}</p>
@@ -238,7 +239,7 @@ export default function CourseCockpit({ detail, onRefetch }: { detail: CourseDet
             <p className="text-sm font-bold text-ink">الخريطة المعرفية</p>
             {aiVisual && <Button variant="ghost" className="!px-3 !py-1 text-xs" onClick={() => setAiVisual(null)}>عرض الخريطة الافتراضية</Button>}
           </div>
-          <KnowledgeMap topics={detail.topics} aiVisual={aiVisual} onSelectTopic={() => setTab('practice')} />
+          <KnowledgeMap topics={course.topics} aiVisual={aiVisual} onSelectTopic={() => setTab('practice')} />
         </Card>
       )}
 

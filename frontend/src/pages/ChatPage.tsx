@@ -879,11 +879,11 @@ export default function ChatPage() {
               <div className="rounded-xl bg-elevated p-3">
                 <p className="mb-1.5 text-xs font-bold text-ink-faint">{t('chat.folders')}</p>
                 <p className="text-sm font-bold text-ink">{categorySuggestion.folder || t('chat.noFolder')}</p>
-                {categorySuggestion.tags.length > 0 && (
+                {(categorySuggestion.tags || []).length > 0 && (
                   <>
                     <p className="mb-1.5 mt-2 text-xs font-bold text-ink-faint">{t('common.tags')}</p>
                     <div className="flex flex-wrap gap-1.5">
-                      {categorySuggestion.tags.map((tg) => <Badge key={tg} tone="brand">#{tg}</Badge>)}
+                      {(categorySuggestion.tags || []).map((tg) => <Badge key={tg} tone="brand">#{tg}</Badge>)}
                     </div>
                   </>
                 )}
