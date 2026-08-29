@@ -12,6 +12,7 @@ const ai = read('serverless/cloud-ai.ts');
 const bridge = read('frontend/src/cloud/bridge.ts');
 const aiTts = read('serverless/routes/ai-tts.ts');
 const aiRealtime = read('serverless/routes/ai-realtime-call.ts');
+const aiAction = read('serverless/routes/ai-action.ts');
 
 const privateTables = [
   'profiles','user_settings','ai_provider_profiles','ai_models','assistants','conversation_folders',
@@ -47,6 +48,13 @@ if (!JSON.stringify(vercel.rewrites).includes('route=ai-tts')) failures.push('cl
 if (!aiRealtime.includes('authContext') || !aiRealtime.includes('assertCloudAiAllowed')) failures.push('cloud Realtime route is not authenticated/privacy-aware');
 if (!aiRealtime.includes('/realtime/calls') || !aiRealtime.includes('semantic_vad') || !aiRealtime.includes('interrupt_response: true')) failures.push('OpenAI Realtime WebRTC/VAD configuration is missing');
 if (!JSON.stringify(vercel.rewrites).includes('route=ai-realtime-call')) failures.push('cloud Realtime rewrite is missing');
+for (const route of ['study-tutor', 'study-practice-question', 'study-visualize']) {
+  if (!JSON.stringify(vercel.rewrites).includes(`route=${route}`)) failures.push(`cloud ${route} rewrite is missing`);
+}
+for (const action of ['practice-question', 'study-visualize']) {
+  if (!aiAction.includes(`action === '${action}'`)) failures.push(`cloud ${action} action is missing`);
+}
+if (!bridge.includes("route === '/surprise'") || !bridge.includes("route === '/study/quiz/answer'")) failures.push('cloud surprise or quiz bridge is missing');
 if (/deepseek-v4-(?:flash|pro)/.test(ai + bridge)) failures.push('obsolete DeepSeek model identifier remains');
 if (!read('.env.example').includes('AI_PROVIDER=')) failures.push('cloud AI provider env documentation missing');
 if (!read('.env.example').includes('OPENAI_TTS_VOICE=alloy')) failures.push('Alloy voice env documentation missing');

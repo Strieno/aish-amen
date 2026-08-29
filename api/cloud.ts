@@ -36,6 +36,18 @@ const handlers: Record<string, Handler> = {
   'conversation-categorize': conversationCategorize,
   'links-discover': linksDiscover,
   'provider-test': providerTest,
+  'study-tutor': (req, res) => {
+    req.body = { ...(req.body || {}), action: 'tutor' };
+    return aiAction(req, res);
+  },
+  'study-practice-question': (req, res) => {
+    req.body = { ...(req.body || {}), action: 'practice-question' };
+    return aiAction(req, res);
+  },
+  'study-visualize': (req, res) => {
+    req.body = { ...(req.body || {}), action: 'study-visualize' };
+    return aiAction(req, res);
+  },
 };
 
 export default async function handler(req: any, res: any) {

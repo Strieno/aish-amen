@@ -91,6 +91,18 @@
     {
       "source": "/api/providers/:id/test",
       "destination": "/api/cloud?route=provider-test&id=:id"
+    },
+    {
+      "source": "/api/study/tutor",
+      "destination": "/api/cloud?route=study-tutor"
+    },
+    {
+      "source": "/api/study/practice/question",
+      "destination": "/api/cloud?route=study-practice-question"
+    },
+    {
+      "source": "/api/study/visualize",
+      "destination": "/api/cloud?route=study-visualize"
     }
   ]
 }

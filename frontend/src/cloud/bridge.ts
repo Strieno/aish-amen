@@ -161,6 +161,34 @@ async function cloudCourseDetail(courseId: string) {
   };
 }
 
+async function cloudSurprise() {
+  const day = today();
+  const [taskRows, checkins, journals, focusRows, topics] = await Promise.all([
+    repo('tasks').list(),
+    repo('checkins').list({ entry_date: day }),
+    repo('journal_entries').list({ entry_date: day }),
+    repo('focus_sessions').list(),
+    repo('course_topics').list(),
+  ]);
+  const openTasks = taskRows.filter((task) => !['done', 'cancelled'].includes(String(task.status)));
+  const doneToday = taskRows.filter((task) => task.status === 'done' && String(task.completed_at || '').startsWith(day)).length;
+  const focusToday = focusRows
+    .filter((row) => Boolean(row.completed) && String(row.started_at || '').startsWith(day))
+    .reduce((sum, row) => sum + Number(row.minutes || 0), 0);
+
+  if (!journals.length) return { type: 'reflection', title: 'سؤال تأمل', text: 'ما أصغر شيء أنجزته اليوم ويمكنك أن تقدّر نفسك عليه؟', action: { route: '/journal' }, actionLabel: 'اكتب يوميتك' };
+  if (!checkins.length) return { type: 'checkin', title: 'نبض اليوم', text: 'لم تسجّل حالتك اليوم بعد — نصف دقيقة تساعد التطبيق على فهم يومك.', action: { route: '/safe' }, actionLabel: 'سجّل الآن' };
+  const unfinishedTopic = topics.find((topic) => !topic.done);
+  if (unfinishedTopic && focusToday < 25) return { type: 'challenge', title: 'تحدٍّ صغير', text: `راجع «${unfinishedTopic.title}» لخمس دقائق، ثم اشرح الفكرة بجملة واحدة من ذاكرتك.`, action: { route: '/study' }, actionLabel: 'افتح الدراسة' };
+  if (doneToday === 0 && openTasks.length) return { type: 'challenge', title: 'مهمة وحيدة', text: `لديك ${openTasks.length} مهمة مفتوحة. اختر أقصر واحدة وأنهِ خطوتها الأولى الآن.`, action: { route: '/tasks' }, actionLabel: 'افتح المهام' };
+  const ideas = [
+    'اكتب أهم فكرة تعلمتها اليوم في سطر واحد؛ التلخيص القصير يثبتها أكثر.',
+    'اختر شيئًا مؤجلًا ونفّذ منه دقيقتين فقط. البداية الصغيرة تحسب.',
+    'خذ دقيقة تنفس هادئة، ثم عد إلى أهم شيء واحد فقط.',
+  ];
+  return { type: new Date().getHours() >= 22 ? 'calm' : 'idea', title: new Date().getHours() >= 22 ? 'وقت الهدوء' : 'فكرة اليوم', text: ideas[Math.floor(Math.random() * ideas.length)], action: null, actionLabel: null };
+}
+
 async function dashboard() {
   const [taskRows, schedule, checkins, focus, goalRows, examRows, courseRows, links, suggestions, conversations, journals] = await Promise.all([
     repo('tasks').list(), repo('calendar_events').list(), repo('checkins').list(), repo('focus_sessions').list(),
@@ -653,6 +681,7 @@ export async function tryCloudRequest(path: string, method: Method, input?: unkn
   if (route === '/export' && method === 'GET') return { handled: true, data: await cloudExport() };
   if (route === '/dashboard/today' && method === 'GET') return { handled: true, data: await dashboard() };
   if (route === '/insights' && method === 'GET') return { handled: true, data: await insights() };
+  if (route === '/surprise' && method === 'POST') return { handled: true, data: await cloudSurprise() };
 
   if (route === '/tasks' && method === 'GET') return { handled: true, data: await tasks(url) };
   if (route === '/tasks' && method === 'POST') return { handled: true, data: await repo('tasks', 'task-').create({ title: body.title || 'مهمة', description: body.description || '', priority: body.priority || 'medium', energy: body.energy || 'medium', est_minutes: body.est_minutes ?? null, due_date: body.due_date || null, project_id: body.project_id || null, course_id: body.course_id || null, tags: body.tags || [], status: body.status || 'inbox', dependencies: body.dependencies || [], notes: body.notes || '', completed_at: body.status === 'done' ? now() : null }) };
@@ -712,6 +741,16 @@ export async function tryCloudRequest(path: string, method: Method, input?: unkn
   match = route.match(/^\/topics\/([^/]+)$/);
   if (match && method === 'PATCH') return { handled: true, data: await repo('course_topics').update(match[1], body) };
   if (match && method === 'DELETE') return { handled: true, data: await repo('course_topics').delete(match[1]) };
+  if (route === '/study/quiz/answer' && method === 'POST') {
+    return {
+      handled: true,
+      data: {
+        ok: true,
+        mastery: null,
+        misconception: body.correct !== true && Number(body.confidence || 0) >= 4,
+      },
+    };
+  }
   if (route === '/exams' && method === 'GET') { const [rows, courseRows] = await Promise.all([repo('exams').list({}, { order: 'exam_date' }), repo('courses').list()]); const map = new Map(courseRows.map((row) => [row.id, row])); return { handled: true, data: rows.map((row) => ({ ...row, course_name: map.get(String(row.course_id || ''))?.name, color: map.get(String(row.course_id || ''))?.color })) }; }
   if (route === '/exams' && method === 'POST') return { handled: true, data: await repo('exams', 'exam-').create({ course_id: body.course_id, title: body.title || 'امتحان', exam_type: body.exam_type || 'OTHER', exam_date: body.exam_date || null, weight: body.weight ?? null, grade: body.grade ?? null, notes: body.notes || '' }) };
   match = route.match(/^\/exams\/([^/]+)$/);
