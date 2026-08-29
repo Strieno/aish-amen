@@ -31,8 +31,6 @@ export default async function handler(req: any, res: any) {
     if (!ctx) return res.status(401).json({ ok: false, error: 'سجّل الدخول أولًا لاستخدام المحادثة الصوتية.' });
     await assertCloudAiAllowed(ctx);
     const body = req.body || {};
-    const sdp = compact(body.sdp, 100000);
-    if (!sdp || !sdp.startsWith('v=0')) return res.status(400).json({ ok: false, error: 'عرض الاتصال الصوتي غير صالح.' });
 
     const apiKey = compact(process.env.OPENAI_API_KEY, 1000);
     if (!apiKey) return res.status(503).json({ ok: false, error: 'أضف OPENAI_API_KEY في إعدادات Vercel لتشغيل التكلم المباشر.' });
@@ -70,21 +68,22 @@ export default async function handler(req: any, res: any) {
         output: { voice, speed: 1 },
       },
     };
-    const upstream = await fetch(`${baseUrl}/realtime/calls?model=${encodeURIComponent(model)}`, {
+    const upstream = await fetch(`${baseUrl}/realtime/client_secrets`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/sdp' },
-      body: sdp,
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session }),
     });
-    const answer = await upstream.text();
+    const answerText = await upstream.text();
     if (!upstream.ok) {
-      let detail = answer;
-      try { detail = JSON.parse(answer)?.error?.message || answer; } catch { /* plain response */ }
+      let detail = answerText;
+      try { detail = JSON.parse(answerText)?.error?.message || answerText; } catch { /* plain response */ }
       throw Object.assign(new Error(publicRealtimeError(upstream.status, detail)), { status: upstream.status });
     }
-    if (!answer.trim().startsWith('v=0')) {
-      throw Object.assign(new Error('أعادت خدمة OpenAI جواب اتصال صوتي غير صالح. أعد المحاولة.'), { status: 502 });
-    }
-    return res.json({ ok: true, sdp: answer, model, voice, session });
+    let answer: any;
+    try { answer = JSON.parse(answerText); } catch { answer = null; }
+    const clientSecret = compact(answer?.value || answer?.client_secret?.value, 2000);
+    if (!clientSecret) throw Object.assign(new Error('تعذر إنشاء مفتاح مؤقت للمحادثة الصوتية. أعد المحاولة.'), { status: 502 });
+    return res.json({ ok: true, client_secret: clientSecret, expires_at: answer?.expires_at || answer?.client_secret?.expires_at, model, voice });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'تعذر بدء المحادثة الصوتية.';
     const status = Number((error as any)?.status) || (/الخصوصية القصوى/.test(message) ? 403 : 502);

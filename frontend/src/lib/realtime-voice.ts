@@ -26,10 +26,10 @@ interface StartOptions {
 
 interface RealtimeCallAnswer {
   ok: boolean;
-  sdp: string;
+  client_secret: string;
+  expires_at?: number;
   model: string;
   voice: string;
-  session?: Record<string, unknown>;
 }
 
 const clean = (value: unknown) => String(value || '').replace(/\s+/g, ' ').trim();
@@ -77,7 +77,6 @@ export async function startRealtimeVoice(options: StartOptions): Promise<LiveVoi
   let flushTimer = 0;
   let flushRunning = false;
   let activeModel = 'gpt-realtime-2.1-mini';
-  let sessionConfig: Record<string, unknown> | undefined;
 
   const stop = () => {
     if (stopped) return;
@@ -142,7 +141,6 @@ export async function startRealtimeVoice(options: StartOptions): Promise<LiveVoi
   stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
   dataChannel.onopen = () => {
-    if (sessionConfig) dataChannel.send(JSON.stringify({ type: 'session.update', session: sessionConfig }));
     options.onState(muted ? 'muted' : 'listening');
   };
   dataChannel.onmessage = (message) => {
@@ -180,7 +178,6 @@ export async function startRealtimeVoice(options: StartOptions): Promise<LiveVoi
     await pc.setLocalDescription(offer);
     await waitForIce(pc);
     const answer = await api.post<RealtimeCallAnswer>('/ai/realtime/call', {
-      sdp: pc.localDescription?.sdp || offer.sdp,
       conversation_id: conversationId || undefined,
       assistant_id: options.assistantId || undefined,
       mode: options.mode || 'general',
@@ -188,9 +185,22 @@ export async function startRealtimeVoice(options: StartOptions): Promise<LiveVoi
       language: options.language || 'ar',
     });
     activeModel = answer.model || activeModel;
-    sessionConfig = answer.session;
     if (stopped) return { setMuted: () => {}, stop };
-    await pc.setRemoteDescription({ type: 'answer', sdp: answer.sdp });
+    const sdp = pc.localDescription?.sdp || offer.sdp || '';
+    if (!sdp.startsWith('v=0') || !answer.client_secret) throw new Error('تعذر تجهيز الاتصال الصوتي. أعد المحاولة.');
+    const upstream = await fetch(`https://api.openai.com/v1/realtime/calls?model=${encodeURIComponent(activeModel)}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${answer.client_secret}`, 'Content-Type': 'application/sdp' },
+      body: sdp,
+    });
+    const answerSdp = await upstream.text();
+    if (!upstream.ok) {
+      let detail = answerSdp;
+      try { detail = JSON.parse(answerSdp)?.error?.message || answerSdp; } catch { /* plain response */ }
+      throw new Error(clean(detail) || `تعذر بدء الاتصال الصوتي (${upstream.status}).`);
+    }
+    if (!answerSdp.trim().startsWith('v=0')) throw new Error('أعادت خدمة الصوت جواب اتصال غير صالح. أعد المحاولة.');
+    await pc.setRemoteDescription({ type: 'answer', sdp: answerSdp });
   } catch (error) {
     stop();
     throw error;

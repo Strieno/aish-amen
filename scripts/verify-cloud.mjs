@@ -46,8 +46,8 @@ if (!ai.includes('/audio/speech') || !ai.includes("'alloy'")) failures.push('Ope
 if (!aiTts.includes('authContext') || !aiTts.includes('assertCloudAiAllowed')) failures.push('cloud TTS route is not authenticated/privacy-aware');
 if (!JSON.stringify(vercel.rewrites).includes('route=ai-tts')) failures.push('cloud TTS rewrite is missing');
 if (!aiRealtime.includes('authContext') || !aiRealtime.includes('assertCloudAiAllowed')) failures.push('cloud Realtime route is not authenticated/privacy-aware');
-if (!aiRealtime.includes('/realtime/calls') || !aiRealtime.includes('semantic_vad') || !aiRealtime.includes('interrupt_response: true')) failures.push('OpenAI Realtime WebRTC/VAD configuration is missing');
-if (!aiRealtime.includes("'Content-Type': 'application/sdp'") || !aiRealtime.includes('body: sdp')) failures.push('OpenAI Realtime call must send the raw SDP offer');
+if (!aiRealtime.includes('/realtime/client_secrets') || !aiRealtime.includes('semantic_vad') || !aiRealtime.includes('interrupt_response: true')) failures.push('OpenAI Realtime ephemeral session/VAD configuration is missing');
+if (!read('frontend/src/lib/realtime-voice.ts').includes("'Content-Type': 'application/sdp'") || !read('frontend/src/lib/realtime-voice.ts').includes('body: sdp')) failures.push('browser Realtime call must send the raw SDP offer directly');
 if (!JSON.stringify(vercel.rewrites).includes('route=ai-realtime-call')) failures.push('cloud Realtime rewrite is missing');
 for (const route of ['study-tutor', 'study-practice-question', 'study-visualize']) {
   if (!JSON.stringify(vercel.rewrites).includes(`route=${route}`)) failures.push(`cloud ${route} rewrite is missing`);
