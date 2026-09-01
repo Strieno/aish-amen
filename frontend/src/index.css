@@ -754,3 +754,64 @@ html.dark.theme-warm {
   80% { opacity: 1; transform: scale(1.02); }
   100% { opacity: 0; transform: scale(1.05) translateY(-10px); }
 }
+
+/* ============ Compact range slider (check-ins) ============ */
+input[type='range'].rating-slider {
+  width: 100%;
+  height: 24px;
+  margin: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+input[type='range'].rating-slider:focus-visible {
+  outline: 2px solid rgb(var(--brand));
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+input[type='range'].rating-slider::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    to var(--dir, left),
+    rgb(var(--brand)) 0%,
+    rgb(var(--brand)) var(--fill, 50%),
+    var(--line) var(--fill, 50%),
+    var(--line) 100%
+  );
+}
+input[type='range'].rating-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -5px;
+  border-radius: 9999px;
+  background: #fff;
+  border: 2px solid rgb(var(--brand));
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
+  transition: transform 0.15s ease;
+}
+input[type='range'].rating-slider:active::-webkit-slider-thumb {
+  transform: scale(1.15);
+}
+input[type='range'].rating-slider::-moz-range-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--line);
+}
+input[type='range'].rating-slider::-moz-range-progress {
+  height: 6px;
+  border-radius: 9999px;
+  background: rgb(var(--brand));
+}
+input[type='range'].rating-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: #fff;
+  border: 2px solid rgb(var(--brand));
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
+  transition: transform 0.15s ease;
+}

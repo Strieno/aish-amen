@@ -144,7 +144,7 @@ r.get('/dashboard/today', (req, res) => {
   const nowTime = new Date().toTimeString().slice(0, 5);
 
   const tasks = all(
-    "SELECT * FROM tasks WHERE status NOT IN ('done','cancelled') AND (due_date IS NULL OR due_date = ?) ORDER BY CASE priority WHEN 'high' THEN 0 WHEN 'medium' THEN 1 ELSE 2 END",
+    "SELECT * FROM tasks WHERE status NOT IN ('done','cancelled') AND (due_date IS NULL OR due_date <= ?) ORDER BY due_date IS NOT NULL DESC, due_date, CASE priority WHEN 'high' THEN 0 WHEN 'medium' THEN 1 ELSE 2 END",
     today,
   ).map((t) => ({ ...t, tags: JSON.parse(t.tags || '[]') }));
 

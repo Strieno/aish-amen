@@ -5,6 +5,7 @@ import { useApi } from '../lib/useApi';
 import { useT } from '../lib/i18n';
 import type { SafePlan, TodayData } from '../lib/types';
 import { PageHeader, Badge, Button, Card, EmptyState, Field, Modal, Spinner } from '../components/ui';
+import CheckinCard from '../components/CheckinCard';
 import { useAiAction } from '../lib/useAiAction';
 import AiResultBox from '../components/AiResultBox';
 import { SafeLivingRings, LivingGarden } from '../components/visualizations';
@@ -45,7 +46,7 @@ export default function SafeLivingPage() {
   const { data: status } = useApi<{ level: string; factors: unknown }>('/safe/status');
   const { data: plans, loading, refetch } = useApi<SafePlan[]>('/safe/plans');
   const { data: sessions, refetch: refetchSessions } = useApi<{ plan_name?: string; status: string }[]>('/safe/sessions');
-  const { data: today } = useApi<TodayData>('/dashboard/today');
+  const { data: today, refetch: refetchToday } = useApi<TodayData>('/dashboard/today');
 
   const [editing, setEditing] = useState<SafePlan | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -71,6 +72,9 @@ export default function SafeLivingPage() {
           <Plus className="h-4 w-4" /> {t('safe.addPlan')}
         </Button>
       </PageHeader>
+
+      {/* Daily check-in — the grounding that powers today's suggestions */}
+      <CheckinCard checkin={today?.checkin ?? null} onSaved={() => refetchToday()} />
 
       {/* Status + active plan */}
       <div className="grid gap-3 md:grid-cols-2">

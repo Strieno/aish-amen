@@ -29,6 +29,44 @@ export function getInsights() {
      ORDER BY due_date LIMIT 8`,
     today,
   );
+  const overdueCount = all(
+    `SELECT COUNT(*) AS n FROM tasks
+     WHERE status NOT IN ('done','cancelled') AND due_date IS NOT NULL AND due_date < ?`,
+    today,
+  )[0]?.n || 0;
+
+  // Tasks completed in the last 7 days (pairs well with overdueCount).
+  const weekStart = new Date(Date.now() - 6 * 86_400_000).toISOString().slice(0, 10);
+  const weekTasksDone = all(
+    `SELECT COUNT(*) AS n FROM tasks WHERE status = 'done' AND completed_at IS NOT NULL AND completed_at >= ?`,
+    `${weekStart}%`,
+  )[0]?.n || 0;
+
+  // Focus minutes this week vs the previous week (descriptive trend).
+  const focusWeek = all(
+    `SELECT CASE WHEN started_at >= ? THEN 'this' ELSE 'prev' END AS bucket,
+            COALESCE(SUM(minutes),0) AS mins
+     FROM focus_sessions WHERE completed = 1 AND started_at >= ?
+     GROUP BY bucket`,
+    `${weekStart}%`,
+    `${new Date(Date.now() - 13 * 86_400_000).toISOString().slice(0, 10)}%`,
+  );
+  const focusThisWeek = focusWeek.find((f) => f.bucket === 'this')?.mins || 0;
+  const focusPrevWeek = focusWeek.find((f) => f.bucket === 'prev')?.mins || 0;
+
+  // Consecutive days with at least one completed focus session.
+  const focusDays = all(
+    `SELECT DISTINCT strftime('%Y-%m-%d', started_at) AS day
+     FROM focus_sessions WHERE completed = 1 ORDER BY day DESC`,
+  );
+  const focusDaysStreak = (() => {
+    const days = new Set(focusDays.map((f) => f.day));
+    let streak = 0;
+    for (let d = new Date(); days.has(d.toISOString().slice(0, 10)); d = new Date(d.getTime() - 86_400_000)) {
+      streak += 1;
+    }
+    return streak;
+  })();
 
   // Most productive time of day by completed focus sessions.
   const byHour = all(
@@ -49,6 +87,11 @@ export function getInsights() {
     tasksCompleted: tasksDone,
     studyMinutesToday: studyMinutes,
     postponedTasks: postponed,
+    overdueCount,
+    weekTasksDone,
+    focusThisWeek,
+    focusPrevWeek,
+    focusDaysStreak,
     productiveHour,
     sleepStudy,
     generatedAt: new Date().toISOString(),

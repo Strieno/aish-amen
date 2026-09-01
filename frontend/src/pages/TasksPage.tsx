@@ -10,6 +10,14 @@ import { useAiAction } from '../lib/useAiAction';
 import AiResultBox from '../components/AiResultBox';
 import { celebrate } from '../components/visualizations';
 import { localDateKey } from '../lib/date';
+import { priorityInfo, sortOpenTasks, type PriorityTier } from '../lib/priority';
+
+const TIER_BADGE: Record<PriorityTier, { tone: 'danger' | 'warn' | 'brand' | 'neutral'; labelKey: string }> = {
+  urgent: { tone: 'danger', labelKey: 'priority.urgent' },
+  important: { tone: 'warn', labelKey: 'priority.important' },
+  later: { tone: 'brand', labelKey: 'priority.later' },
+  optional: { tone: 'neutral', labelKey: 'priority.optional' },
+};
 
 const STATUS_LABEL: Record<string, string> = {
   inbox: 'tasks.inbox',
@@ -102,6 +110,8 @@ export default function TasksPage() {
   if (energy) filtered = filtered.filter((t) => t.energy === energy);
   if (projectId) filtered = filtered.filter((t) => t.project_id === projectId);
   if (lowEnergyOnly) filtered = filtered.filter((t) => t.energy === 'low' && t.status !== 'done');
+  // Smart priority engine: rank open tasks by urgency + importance, keep done last.
+  filtered = sortOpenTasks(filtered);
 
   const openCount = (filtered || []).filter((x) => x.status !== 'done').length;
 
@@ -242,6 +252,9 @@ export default function TasksPage() {
                     {task.title}
                   </p>
                   <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                    {task.status !== 'done' && task.status !== 'cancelled' && (
+                      <Badge tone={TIER_BADGE[priorityInfo(task).tier].tone}>{t(TIER_BADGE[priorityInfo(task).tier].labelKey)}</Badge>
+                    )}
                     <Badge tone={task.priority === 'high' ? 'danger' : task.priority === 'medium' ? 'warn' : 'neutral'}>
                       {t(task.priority === 'high' ? 'common.high' : task.priority === 'medium' ? 'common.medium' : 'common.low')}
                     </Badge>
@@ -250,11 +263,12 @@ export default function TasksPage() {
                     </Badge>
                     {task.project_name && <Badge tone="brand">{task.project_name}</Badge>}
                     {task.course_name && <Badge tone="brand">{task.course_name}</Badge>}
-                    {task.due_date && (
-                      <span className={`text-xs ${task.due_date < localDateKey() ? 'font-bold text-danger' : 'text-ink-faint'}`}>
-                        {task.due_date}
-                      </span>
-                    )}
+                    {task.due_date &&
+                      (task.due_date < localDateKey() ? (
+                        <span className="text-xs font-bold text-danger">⚠ {t('tasks.overdue')} ({task.due_date})</span>
+                      ) : (
+                        <span className="text-xs text-ink-faint">{task.due_date}</span>
+                      ))}
                   </div>
                 </div>
                 <div className="flex shrink-0 gap-0.5 md:invisible md:group-hover:visible md:group-focus-within:visible">

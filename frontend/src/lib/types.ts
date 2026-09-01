@@ -508,6 +508,11 @@ export interface Insights {
   tasksCompleted: number;
   studyMinutesToday: number;
   postponedTasks: { title: string; due_date: string }[];
+  overdueCount?: number;
+  weekTasksDone?: number;
+  focusThisWeek?: number;
+  focusPrevWeek?: number;
+  focusDaysStreak?: number;
   productiveHour: string | null;
   sleepStudy: { sleep: number | null; sessions: number }[];
 }
