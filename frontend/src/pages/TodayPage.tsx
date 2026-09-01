@@ -12,6 +12,7 @@ import { SafeHomeScene, CalmEmptyScene } from '../components/SceneArt';
 import SpeakButton from '../components/SpeakButton';
 import { SafeLivingOrb, LifePulse, WeeklyLifeMap } from '../components/visualizations';
 import NextActionsCard from '../components/gamification/NextActionsCard';
+import TodayModeCard from '../components/TodayModeCard';
 import DiscoveriesCard from '../components/gamification/DiscoveriesCard';
 import SurpriseButton from '../components/gamification/SurpriseButton';
 import { useProgressStore } from '../components/gamification/progress-store';
@@ -182,6 +183,9 @@ export default function TodayPage() {
           <SurpriseButton />
         </div>
       </div>
+
+      {/* Smart Today Mode — one calm card with what matters now */}
+      <TodayModeCard data={data} />
 
       {/* Current status + safe indicator */}
       <div className="grid gap-3 md:grid-cols-2">

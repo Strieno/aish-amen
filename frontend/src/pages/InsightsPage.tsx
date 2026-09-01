@@ -34,6 +34,42 @@ export default function InsightsPage() {
         <Stat icon={Activity} value={data.productiveHour || '—'} label={t('insights.productiveHour')} />
       </div>
 
+      {/* Quick smart insights — one line each, derived deterministically */}
+      {(() => {
+        const weekDone = data.weekTasksDone ?? 0;
+        const focusThis = data.focusThisWeek ?? 0;
+        const focusPrev = data.focusPrevWeek ?? 0;
+        const focusStreak = data.focusDaysStreak ?? 0;
+        const items: string[] = [];
+        const overdue = data.overdueCount ?? postponedTasks.length;
+        if (overdue > 0) items.push(`⚠ ${overdue} مهام متأخرة — رتّبها حسب العاجل.`);
+        else if (postponedTasks.length === 0 && weekDone > 0) items.push(`✨ لا توجد مهام متأخرة — أسبوع مرتب.`);
+        if (weekDone > 0) items.push(`✓ أنجزت ${weekDone} مهام هذا الأسبوع.`);
+        const focusDelta = focusThis - focusPrev;
+        if (focusDelta !== 0) {
+          items.push(focusDelta > 0 ? `⏱ تركيز هذا الأسبوع +${focusDelta} د عن السابق — استمر.` : `⏱ تركيز هذا الأسبوع ${focusDelta} د عن السابق — جلسة قصيرة تكفي.`);
+        } else if (focusThis > 0) {
+          items.push(`⏱ ${focusThis} دقيقة تركيز هذا الأسبوع.`);
+        }
+        if (focusStreak > 1) items.push(`🔥 ${focusStreak} أيام تركيز متتالية — لا تقطعها اليوم.`);
+        if (items.length === 0) return null;
+        return (
+          <Card className="border-brand-lighter/60 bg-brand-soft/30">
+            <h2 className="mb-2 flex items-center gap-1.5 text-sm font-bold text-ink">
+              <Sparkles className="h-4 w-4 text-brand-dark" /> ذكاء سريع
+            </h2>
+            <ul className="space-y-1.5">
+              {items.slice(0, 4).map((item) => (
+                <li key={item} className="flex items-start gap-2 text-xs leading-relaxed text-ink-soft">
+                  <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-brand-accent" aria-hidden="true" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </Card>
+        );
+      })()}
+
       {postponedTasks.length > 0 && (
         <Card>
           <h2 className="mb-2 text-sm font-bold text-ink">{t('insights.postponed')}</h2>
