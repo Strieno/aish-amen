@@ -73,36 +73,36 @@ export default function AuthPage({ recovery = false, onRecoveryDone }: { recover
   const subtitle = mode === 'login' ? 'بياناتك ومهامك معك على كل جهاز.' : mode === 'signup' ? 'حساب واحد، مزامنة خاصة، ووصول من الجوال والكمبيوتر.' : mode === 'reset' ? 'أدخل بريدك وسنرسل لك رابطًا آمنًا.' : 'اختر كلمة مرور قوية لحسابك.';
 
   return (
-    <main className="min-h-dvh bg-canvas px-4 py-8 text-ink sm:flex sm:items-center sm:justify-center" dir="rtl">
-      <div className="mx-auto grid w-full max-w-4xl overflow-hidden rounded-[2rem] border border-line bg-card shadow-2xl sm:grid-cols-[0.9fr_1.1fr]">
-        <section className="relative hidden overflow-hidden bg-brand p-10 text-white sm:flex sm:flex-col sm:justify-between">
-          <div className="absolute -left-16 -top-16 h-48 w-48 rounded-full bg-white/10" />
-          <div className="absolute -bottom-20 -right-20 h-64 w-64 rounded-full bg-black/10" />
+    <main className="min-h-dvh bg-canvas px-4 py-6 text-ink sm:flex sm:items-center sm:justify-center" dir="rtl">
+      <div className="mx-auto grid w-full max-w-3xl overflow-hidden rounded-card border border-line bg-card shadow-md animate-fadeIn sm:grid-cols-[0.9fr_1.1fr]">
+        <section className="relative hidden overflow-hidden bg-brand p-8 text-white sm:flex sm:flex-col sm:justify-between">
+          <div className="absolute -start-16 -top-16 h-44 w-44 rounded-full bg-white/10" aria-hidden="true" />
+          <div className="absolute -bottom-20 -end-20 h-56 w-56 rounded-full bg-black/10" aria-hidden="true" />
           <div className="relative">
-            <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 backdrop-blur"><ShieldCheck className="h-7 w-7" /></div>
-            <h1 className="text-3xl font-black">عِش آمن</h1>
-            <p className="mt-3 max-w-xs text-sm leading-7 text-white/80">نظامك الشخصي للمهام والذاكرة واليوميات والأهداف، أصبح متاحًا بأمان على أجهزتك.</p>
+            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-white/15 backdrop-blur"><ShieldCheck className="h-5 w-5" /></div>
+            <h1 className="text-2xl font-extrabold leading-tight">عِش آمن</h1>
+            <p className="mt-2 max-w-xs text-[13px] leading-6 text-white/80">نظامك الشخصي للمهام والذاكرة واليوميات والأهداف، أصبح متاحًا بأمان على أجهزتك.</p>
           </div>
-          <div className="relative space-y-3 text-sm text-white/85">
-            <p className="flex items-center gap-2"><Cloud className="h-4 w-4" /> مزامنة تلقائية ومباشرة</p>
-            <p className="flex items-center gap-2"><ShieldCheck className="h-4 w-4" /> كل حساب يرى بياناته فقط</p>
+          <div className="relative space-y-2.5 text-[13px] text-white/85">
+            <p className="flex items-center gap-2"><Cloud className="h-4 w-4 shrink-0" /> مزامنة تلقائية ومباشرة</p>
+            <p className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 shrink-0" /> كل حساب يرى بياناته فقط</p>
           </div>
         </section>
 
-        <section className="p-6 sm:p-10">
-          <div className="mb-7 sm:hidden"><p className="text-2xl font-black text-brand-dark">عِش آمن</p></div>
-          <h2 className="text-2xl font-extrabold">{title}</h2>
-          <p className="mt-2 text-sm text-ink-faint">{subtitle}</p>
-          <form className="mt-7 space-y-4" onSubmit={submit}>
-            {mode === 'signup' && <label className="block"><span className="label">الاسم</span><div className="relative"><UserPlus className="pointer-events-none absolute right-4 top-3.5 h-4 w-4 text-ink-faint" /><input className="input !pr-11" value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" placeholder="اسمك" /></div></label>}
-            {mode !== 'update' && <label className="block"><span className="label">البريد الإلكتروني</span><div className="relative"><Mail className="pointer-events-none absolute right-4 top-3.5 h-4 w-4 text-ink-faint" /><input className="input !pr-11" dir="ltr" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" placeholder="you@example.com" /></div></label>}
-            {mode !== 'reset' && <label className="block"><span className="label">كلمة المرور</span><div className="relative"><KeyRound className="pointer-events-none absolute right-4 top-3.5 h-4 w-4 text-ink-faint" /><input className="input !px-11" dir="ltr" type={showPassword ? 'text' : 'password'} required minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} /><button type="button" onClick={() => setShowPassword((value) => !value)} className="absolute left-3 top-2.5 btn-icon !h-8 !w-8" aria-label="إظهار كلمة المرور">{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></div></label>}
+        <section className="p-6 sm:p-8">
+          <div className="mb-5 sm:hidden"><p className="text-xl font-extrabold text-brand-dark">عِش آمن</p></div>
+          <h2 className="text-xl font-bold">{title}</h2>
+          <p className="mt-1 text-[13px] text-ink-faint">{subtitle}</p>
+          <form className="mt-5 space-y-3" onSubmit={submit}>
+            {mode === 'signup' && <label className="block"><span className="label">الاسم</span><div className="relative"><UserPlus className="pointer-events-none absolute start-3 top-2.5 h-4 w-4 text-ink-faint" /><input className="input !ps-10" value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" placeholder="اسمك" /></div></label>}
+            {mode !== 'update' && <label className="block"><span className="label">البريد الإلكتروني</span><div className="relative"><Mail className="pointer-events-none absolute start-3 top-2.5 h-4 w-4 text-ink-faint" /><input className="input !ps-10" dir="ltr" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" placeholder="you@example.com" /></div></label>}
+            {mode !== 'reset' && <label className="block"><span className="label">كلمة المرور</span><div className="relative"><KeyRound className="pointer-events-none absolute start-3 top-2.5 h-4 w-4 text-ink-faint" /><input className="input !ps-10 !pe-10" dir="ltr" type={showPassword ? 'text' : 'password'} required minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} /><button type="button" onClick={() => setShowPassword((value) => !value)} className="btn-icon absolute end-1.5 top-1" aria-label="إظهار كلمة المرور">{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></div></label>}
             {(mode === 'signup' || mode === 'update') && <label className="block"><span className="label">تأكيد كلمة المرور</span><input className="input" dir="ltr" type={showPassword ? 'text' : 'password'} required minLength={8} value={confirm} onChange={(event) => setConfirm(event.target.value)} autoComplete="new-password" /></label>}
-            {error && <div className="rounded-2xl border border-danger-border bg-danger-bg px-4 py-3 text-sm text-danger" role="alert">{error}</div>}
-            {notice && <div className="rounded-2xl border border-brand-lighter bg-brand-soft px-4 py-3 text-sm text-brand-dark" role="status">{notice}</div>}
+            {error && <div className="rounded-lg border border-danger-border bg-danger-bg px-3.5 py-2.5 text-[13px] text-danger" role="alert">{error}</div>}
+            {notice && <div className="rounded-lg border border-brand-lighter bg-brand-soft px-3.5 py-2.5 text-[13px] text-brand-dark" role="status">{notice}</div>}
             <button className="btn-primary w-full" disabled={busy}>{busy ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : mode === 'login' ? <LogIn className="h-4 w-4" /> : <ShieldCheck className="h-4 w-4" />}{mode === 'login' ? 'تسجيل الدخول' : mode === 'signup' ? 'إنشاء الحساب' : mode === 'reset' ? 'إرسال رابط الاستعادة' : 'حفظ كلمة المرور'}</button>
           </form>
-          {!recovery && <div className="mt-6 space-y-2 text-center text-sm">
+          {!recovery && <div className="mt-5 space-y-1.5 text-center text-[13px]">
             {mode === 'login' && <button className="text-brand-dark hover:underline" onClick={() => switchMode('reset')}>نسيت كلمة المرور؟</button>}
             <p className="text-ink-faint">{mode === 'signup' ? 'لديك حساب؟' : 'ليس لديك حساب؟'}{' '}<button className="font-bold text-brand-dark hover:underline" onClick={() => switchMode(mode === 'signup' ? 'login' : 'signup')}>{mode === 'signup' ? 'سجّل الدخول' : 'أنشئ حسابًا'}</button></p>
             {mode === 'reset' && <button className="font-bold text-brand-dark hover:underline" onClick={() => switchMode('login')}>العودة لتسجيل الدخول</button>}
