@@ -93,7 +93,7 @@ interface AppState {
 
 const defaultSettings: Settings = {
   language: 'ar',
-  theme: 'dark',
+  theme: 'light',
   accent: 'green',
   userName: '',
   ai: {},
@@ -105,7 +105,7 @@ const defaultSettings: Settings = {
 
 export function resolveThemeMode(): 'light' | 'dark' {
   const stored = localStorage.getItem('aish.theme') as ThemeMode | null;
-  const mode = stored || 'dark';
+  const mode = stored || 'light';
   if (mode === 'system') {
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   }
@@ -134,10 +134,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       useI18nStore.getState().setLang(merged.language === 'en' ? 'en' : 'ar');
       document.documentElement.lang = merged.language === 'en' ? 'en' : 'ar';
       document.documentElement.dir = merged.language === 'en' ? 'ltr' : 'rtl';
-      applyTheme((merged.theme as ThemeMode) || 'dark', (merged.accent as Accent) || 'green');
+      applyTheme((merged.theme as ThemeMode) || 'light', (merged.accent as Accent) || 'green');
     } catch {
       set({ settings: defaultSettings });
-      applyTheme('dark', 'green');
+      applyTheme('light', 'green');
     } finally {
       set({ ready: true });
     }

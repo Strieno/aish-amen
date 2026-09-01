@@ -135,7 +135,7 @@ function seed(d) {
   // Default settings
   const defaults = {
     language: 'ar',
-    theme: 'dark',
+    theme: 'light',
     sidebarVisible: JSON.stringify(['today', 'chat', 'safe', 'tasks', 'study', 'work', 'journal', 'goals', 'gratitude', 'memory', 'knowledge', 'audio', 'focus', 'insights', 'settings']),
     userName: '',
     ai: JSON.stringify({ autoSpeak: false, contextBudget: { system: 1500, profile: 600, conversation: 4000, memories: 1500, rag: 3000, userMessage: 500, generation: 4000 } }),
