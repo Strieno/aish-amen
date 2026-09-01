@@ -50,6 +50,10 @@ export default defineConfig({
   ],
   server: {
     port: 5173,
+    allowedHosts: [
+      'work-1-viuqgmodmmucjhpx.prod-runtime.all-hands.dev',
+      'work-2-viuqgmodmmucjhpx.prod-runtime.all-hands.dev',
+    ],
     proxy: {
       '/api': {
         target: 'http://localhost:4321',
