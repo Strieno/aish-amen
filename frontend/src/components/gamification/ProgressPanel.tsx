@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { api } from '../../lib/api';
 import { useT } from '../../lib/i18n';
-import { Button } from '../ui';
+import { Button, Modal } from '../ui';
 import { useProgressStore } from './progress-store';
 import { celebrate } from '../visualizations/CompletionBurst';
 import type { Challenge } from '../../lib/progress';
@@ -41,13 +41,8 @@ export default function ProgressPanel() {
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40" onClick={() => setPanelOpen(false)} />
-      <div className="card relative z-10 max-h-[86dvh] w-full max-w-lg animate-fadeIn overflow-y-auto bg-card p-6" role="dialog" aria-modal="true" aria-label={t('progress.title')}>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-ink">✨ {t('progress.title')}</h2>
-          <button onClick={() => setPanelOpen(false)} className="btn-icon" aria-label={t('common.close')}>✕</button>
-        </div>
+    <Modal open={open} onClose={() => setPanelOpen(false)} title={`✨ ${t('progress.title')}`}>
+      <div className="space-y-4">
 
         {/* Level + XP */}
         <div className="mb-4 rounded-2xl bg-brand-soft/70 p-4">
@@ -117,6 +112,6 @@ export default function ProgressPanel() {
           ))}
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

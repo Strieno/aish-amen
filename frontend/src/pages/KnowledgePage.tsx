@@ -4,7 +4,7 @@ import { api } from '../lib/api';
 import { useApi } from '../lib/useApi';
 import { useT } from '../lib/i18n';
 import type { KnowledgeBase, RagResult } from '../lib/types';
-import { Badge, Button, Card, EmptyState, Field, Modal, Spinner } from '../components/ui';
+import { PageHeader, Badge, Button, Card, EmptyState, Field, Modal, Spinner } from '../components/ui';
 
 export default function KnowledgePage() {
   const t = useT();
@@ -49,13 +49,12 @@ export default function KnowledgePage() {
   };
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <h1 className="section-title">{t('knowledge.title')}</h1>
+    <div className="space-y-4">
+      <PageHeader title={t('knowledge.title')}>
         <Button onClick={() => setShowAdd(true)}>
           <Plus className="h-4 w-4" /> {t('knowledge.addBase')}
         </Button>
-      </div>
+      </PageHeader>
 
       {/* Search */}
       <Card>

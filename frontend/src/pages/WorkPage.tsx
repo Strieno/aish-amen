@@ -4,7 +4,7 @@ import { api } from '../lib/api';
 import { useApi } from '../lib/useApi';
 import { useT } from '../lib/i18n';
 import type { WorkNote, WorkShift } from '../lib/types';
-import { Button, Card, EmptyState, Field, Modal, Spinner } from '../components/ui';
+import { PageHeader, Button, Card, EmptyState, Field, Modal, Spinner } from '../components/ui';
 
 export default function WorkPage() {
   const t = useT();
@@ -18,8 +18,8 @@ export default function WorkPage() {
   const [noteContent, setNoteContent] = useState('');
 
   return (
-    <div className="space-y-5">
-      <h1 className="section-title">{t('work.title')}</h1>
+    <div className="space-y-4">
+      <PageHeader title={t('work.title')} />
 
       {/* Shifts */}
       <div>

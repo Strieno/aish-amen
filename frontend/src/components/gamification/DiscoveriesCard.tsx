@@ -16,7 +16,7 @@ export default function DiscoveriesCard({ className = '' }: { className?: string
   if (!items || items.length === 0) return null;
 
   return (
-    <div className={`card p-5 ${className}`}>
+    <div className={`card p-4 ${className}`}>
       <p className="mb-3 flex items-center gap-2 text-sm font-bold text-ink">
         <Lightbulb className="h-4 w-4 text-brand-dark" /> اكتشافات
       </p>

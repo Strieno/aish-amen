@@ -6,7 +6,7 @@ import { useApi } from '../lib/useApi';
 import { useT } from '../lib/i18n';
 import { useAppStore } from '../lib/app-store';
 import type { TodayData } from '../lib/types';
-import { Button, Card, EmptyState, Spinner } from '../components/ui';
+import { Button, Card, EmptyState, ProgressBar, Skeleton, Spinner, StatCard } from '../components/ui';
 import AiResultBox from '../components/AiResultBox';
 import { SafeHomeScene, CalmEmptyScene } from '../components/SceneArt';
 import SpeakButton from '../components/SpeakButton';
@@ -110,30 +110,21 @@ export default function TodayPage() {
 
   if (loading) {
     return (
-      <div className="space-y-5" role="status" aria-live="polite" aria-busy="true">
-        <div>
-          <h1 className="section-title">{t('today.title')}</h1>
-          <p className="mt-1 flex items-center gap-2 text-sm text-ink-faint">
-            <Spinner className="h-4 w-4" /> {t('common.loading')}
-          </p>
+      <div className="space-y-4" role="status" aria-live="polite" aria-busy="true">
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-7 w-44" />
+          <Spinner className="h-4 w-4 text-ink-faint" />
         </div>
-        <div className="grid gap-4 md:grid-cols-2" aria-hidden="true">
-          {[0, 1].map((item) => (
-            <Card key={item} className="animate-pulse">
-              <div className="h-4 w-24 rounded-full bg-brand-soft" />
-              <div className="mt-4 h-8 w-32 rounded-xl bg-elevated" />
-              <div className="mt-3 h-3 w-full rounded-full bg-elevated" />
-            </Card>
-          ))}
+        <div className="grid gap-3 md:grid-cols-2" aria-hidden="true">
+          <Card className="space-y-3"><Skeleton className="h-4 w-24" /><Skeleton className="h-9 w-32" /><Skeleton className="h-3 w-full" /></Card>
+          <Card className="space-y-3"><Skeleton className="h-4 w-28" /><Skeleton className="h-4 w-2/3" /><Skeleton className="h-3 w-full" /></Card>
         </div>
         <div aria-hidden="true">
-          <Card className="animate-pulse">
-            <div className="h-4 w-28 rounded-full bg-brand-soft" />
-            <div className="mt-4 space-y-2">
-              <div className="h-3 w-full rounded-full bg-elevated" />
-              <div className="h-3 w-5/6 rounded-full bg-elevated" />
-              <div className="h-3 w-2/3 rounded-full bg-elevated" />
-            </div>
+          <Card className="space-y-3">
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-5/6" />
+            <Skeleton className="h-3 w-2/3" />
           </Card>
         </div>
       </div>
@@ -145,20 +136,20 @@ export default function TodayPage() {
   const optional = (data?.tasks || []).filter((t) => t.priority === 'low');
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {/* Hero — greeting + animated art */}
-      <div className="hero-gradient shine relative overflow-hidden rounded-card border border-brand-lighter/60 p-6 shadow-card animate-riseIn md:p-8">
+      <div className="hero-gradient relative overflow-hidden rounded-card border border-brand-lighter/60 p-4 shadow-card animate-riseIn md:p-5">
         <span className="pointer-events-none absolute -top-16 -start-16 h-48 w-48 rounded-full bg-brand-accent/25 blur-3xl" aria-hidden="true" />
         <span className="pointer-events-none absolute -bottom-20 -end-16 h-52 w-52 rounded-full bg-brand-lighter/60 blur-3xl" aria-hidden="true" />
-        <div className="relative z-10 flex items-center justify-between gap-4">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wide text-brand-dark">{t('app.name')}</p>
-            <h1 className="mt-1 text-2xl font-extrabold text-ink md:text-3xl">{greeting(new Date().getHours(), lang)}</h1>
-            <p className="mt-1 text-sm text-ink-soft">
+        <div className="relative z-10 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-brand-dark">{t('app.name')}</p>
+            <h1 className="mt-0.5 text-xl font-extrabold leading-tight text-ink md:text-2xl">{greeting(new Date().getHours(), lang)}</h1>
+            <p className="mt-1 truncate text-[13px] text-ink-soft">
               {lang === 'en' ? new Date().toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'long' }) : new Date().toLocaleDateString('ar', { weekday: 'long', day: 'numeric', month: 'long' })}
               {progress ? ` • مستوى ${progress.level} • +${progress.xpToday} XP اليوم${progress.streaks.activity >= 3 ? ` • 🔥 ${progress.streaks.activity} أيام` : ''}` : ''}
             </p>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-2 flex flex-wrap gap-1.5">
               <span
                 className={`chip ${
                   data?.safe.level === 'overloaded'
@@ -177,48 +168,44 @@ export default function TodayPage() {
               )}
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <SafeHomeScene className="hidden h-28 w-36 shrink-0 opacity-90 sm:block" />
+          <div className="flex shrink-0 items-center gap-3">
+            <SafeHomeScene className="hidden h-24 w-32 shrink-0 opacity-90 md:block" />
             <SafeLivingOrb
               level={data?.safe.level || 'stable'}
               score={dayScore(data)}
-              size={148}
+              size={120}
               className="hidden sm:block"
             />
           </div>
         </div>
-        <div className="relative z-10 -mt-1">
+        <div className="relative z-10 mt-1">
           <SurpriseButton />
         </div>
       </div>
 
       {/* Current status + safe indicator */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card hover>
-          <div className="mb-2 flex items-center gap-2 text-brand-dark">
-            <Clock className="h-4 w-4" />
-            <h2 className="text-sm font-bold">{t('today.status')}</h2>
+      <div className="grid gap-3 md:grid-cols-2">
+        <Card hover className="flex items-center justify-between gap-3">
+          <div>
+            <p className="mb-1 text-xs font-bold text-ink-faint">{t('today.status')}</p>
+            <p className="text-3xl font-extrabold leading-none text-ink" dir="ltr">{data?.now || '--:--'}</p>
           </div>
-          <p className="text-3xl font-extrabold text-ink">
-            {data?.now || '--:--'}
-          </p>
-          {data?.nextEvent && (
-            <div className="mt-3 rounded-xl bg-brand-soft p-3">
-              <p className="text-xs text-ink-faint">{t('today.nextEvent')}</p>
-              <p className="font-semibold text-brand-dark">
+          {data?.nextEvent ? (
+            <div className="min-w-0 flex-1 rounded-lg bg-brand-soft px-3 py-2">
+              <p className="text-[11px] text-ink-faint">{t('today.nextEvent')}</p>
+              <p className="truncate text-[13px] font-semibold text-brand-dark">
                 {data.nextEvent.start.slice(11, 16)} — {data.nextEvent.title}
               </p>
             </div>
-          )}
-          {!data?.nextEvent && (
-            <div className="mt-3 rounded-xl border border-dashed border-line p-3 text-sm text-ink-faint">
+          ) : (
+            <p className="flex-1 rounded-lg border border-dashed border-line px-3 py-2 text-[13px] text-ink-faint">
               {t('today.noTasksHint')}
-            </div>
+            </p>
           )}
         </Card>
 
         <Card>
-          <div className="mb-2 flex items-center justify-between">
+          <div className="mb-1.5 flex items-center justify-between">
             <h2 className="text-sm font-bold text-ink">{t('today.safeIndicator')}</h2>
             <span
               className={`chip ${
@@ -232,12 +219,12 @@ export default function TodayPage() {
               {t(LEVEL_LABEL[data?.safe.level || 'stable'])}
             </span>
           </div>
-          <p className="mt-2 text-sm leading-relaxed text-ink-soft">
+          <p className="text-[13px] leading-relaxed text-ink-soft">
             {lang === 'en'
               ? 'An organizational estimate of today’s load — not a medical assessment.'
               : 'تقدير تنظيمي لضغط اليوم — وليس تقييمًا طبيًا.'}
           </p>
-          <div className="mt-3 flex gap-1.5">
+          <div className="mt-2.5 flex gap-1.5">
             {['stable', 'slightly-overloaded', 'overloaded'].map((lvl) => (
               <span
                 key={lvl}
@@ -260,8 +247,8 @@ export default function TodayPage() {
       {/* AI suggestion */}
       <Card className="gradient-border relative overflow-hidden">
         <span className="pointer-events-none absolute -top-10 -end-10 h-32 w-32 rounded-full bg-brand-soft/70 blur-2xl" aria-hidden="true" />
-        <div className="relative mb-2 flex items-center gap-2 text-brand-dark">
-          <Sparkles className="h-4 w-4 animate-twinkle" />
+        <div className="relative mb-1.5 flex items-center gap-2 text-brand-dark">
+          <Sparkles className="h-4 w-4" />
           <h2 className="text-sm font-bold">{t('today.aiSuggestion')}</h2>
           {suggestion && (
             <span className="ms-auto">
@@ -274,7 +261,7 @@ export default function TodayPage() {
             <Spinner className="h-4 w-4" /> {t('today.suggestion')}
           </p>
         ) : suggestion ? (
-          <p className="text-[15px] leading-relaxed text-ink">{suggestion}</p>
+          <p className="text-sm leading-relaxed text-ink">{suggestion}</p>
         ) : (
           <div className="text-sm text-ink-faint">
             <p className="mb-2">{suggestionError || 'لم يتم توليد اقتراح ذكي بعد.'}</p>
@@ -284,7 +271,7 @@ export default function TodayPage() {
           </div>
         )}
 
-        <div className="mt-3 flex flex-wrap gap-2 border-t border-line pt-3">
+        <div className="mt-2.5 flex flex-wrap gap-1.5 border-t border-line pt-2.5">
           <Button variant="ghost" className="!px-3 !py-1.5 text-xs" onClick={() => planDay.run()} disabled={planDay.loading}>
             <Wand2 className="h-3.5 w-3.5" /> {t('ai.planDay')}
           </Button>
@@ -350,7 +337,7 @@ export default function TodayPage() {
       </div>
 
       {/* Stats strip */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatCard value={String(data?.stats.doneToday ?? 0)} label={t('today.doneToday')} icon={CheckCircle2} />
         <StatCard value={`${data?.stats.focusMinutesToday ?? 0}م`} label={t('today.focusToday')} icon={Clock} />
         <StatCard value={String(data?.stats.openTotal ?? 0)} label={t('tasks.inbox')} icon={CalendarPlus} />
@@ -363,7 +350,7 @@ export default function TodayPage() {
       </div>
 
       {/* Life Pulse + weekly journey */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-3 md:grid-cols-2">
         <Card hover>
           <div className="mb-1 flex items-center gap-2 text-brand-dark">
             <span className="text-xs font-bold">{t('today.lifePulse')}</span>
@@ -380,7 +367,7 @@ export default function TodayPage() {
       </div>
 
       {/* What's next + discoveries */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-3 md:grid-cols-2">
         <NextActionsCard />
         <DiscoveriesCard />
       </div>
@@ -390,7 +377,7 @@ export default function TodayPage() {
         <h2 className="mb-2 flex items-center gap-2 section-title">
           <Sparkles className="h-4 w-4 text-brand-dark" /> {t('today.intelligence')}
         </h2>
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-2">
           {/* Study deadlines */}
           {(data?.intelligence?.study?.exams?.length || 0) > 0 && (
             <Card>
@@ -424,9 +411,7 @@ export default function TodayPage() {
                         <span className="truncate font-semibold text-ink">{g.title}</span>
                         <span className="text-ink-faint">{Math.round(g.progress * 100)}%</span>
                       </div>
-                      <div className="h-1.5 overflow-hidden rounded-pill bg-line">
-                        <div className="h-full rounded-pill bg-brand-accent transition-all" style={{ width: `${Math.round(g.progress * 100)}%` }} />
-                      </div>
+                      <ProgressBar value={g.progress * 100} />
                     </Link>
                   </li>
                 ))}
@@ -487,7 +472,7 @@ export default function TodayPage() {
 
         {/* Continue where you left off */}
         {data?.intelligence?.resume && (
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-3">
             <div>
               <p className="mb-1.5 text-xs font-bold text-ink-faint">{t('today.resume')}</p>
               {data.intelligence.resume.task ? (
@@ -557,35 +542,6 @@ function TaskGroup({
         </ul>
       </Card>
     </div>
-  );
-}
-
-function StatCard({
-  value,
-  label,
-  icon: Icon,
-  to,
-}: {
-  value: string;
-  label: string;
-  icon: React.ElementType;
-  to?: string;
-}) {
-  const inner = (
-    <Card hover className="!p-4 text-center">
-      <span className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-accent via-brand to-brand-dark text-white shadow-button">
-        <Icon className="h-4 w-4" />
-      </span>
-      <p className="text-xl font-extrabold text-ink">{value}</p>
-      <p className="text-xs text-ink-faint">{label}</p>
-    </Card>
-  );
-  return to ? (
-    <Link to={to} className="block">
-      {inner}
-    </Link>
-  ) : (
-    inner
   );
 }
 

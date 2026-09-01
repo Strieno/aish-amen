@@ -487,7 +487,7 @@ export default function ChatPage() {
   }, [loadMessages, refetchConvs]);
 
   return (
-    <div className="relative isolate flex min-h-[calc(100dvh-9rem)] flex-col md:flex-row md:gap-4 lg:min-h-[calc(100dvh-8rem)]">
+    <div className="relative isolate flex min-h-[calc(100dvh-9rem)] flex-col md:flex-row md:gap-4 lg:min-h-[calc(100dvh-6rem)]">
       <PageBackdrop variant="breath" />
       {/* ======= Conversations sidebar ======= */}
       <aside className="mb-4 w-full shrink-0 md:mb-0 md:w-72">
@@ -539,7 +539,7 @@ export default function ChatPage() {
           )}
         </div>
 
-        <div className="mt-2 max-h-72 space-y-1 overflow-y-auto md:max-h-[calc(100vh-320px)]">
+        <div className="mt-2 max-h-72 space-y-1 overflow-y-auto md:max-h-[calc(100vh-330px)]">
           {visibleConvs.length === 0 && (
             <p className="px-2 py-4 text-center text-xs text-ink-faint">{t('common.none')}</p>
           )}
@@ -583,10 +583,10 @@ export default function ChatPage() {
 
       {/* ======= Chat ======= */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1">
-            <label className="text-xs font-bold text-ink-faint">{t('chat.assistant')}</label>
-            <select className="input !w-44 !py-1.5 text-sm" value={assistantId} onChange={(e) => setAssistantId(e.target.value)} aria-label={t('chat.assistant')}>
+        <div className="mb-3 flex flex-wrap items-center gap-1.5">
+          <div className="flex items-center gap-1.5 rounded-lg border border-line bg-elevated/50 px-2 py-1">
+            <label className="text-[11px] font-bold text-ink-faint">{t('chat.assistant')}</label>
+            <select className="input !w-40 !border-0 !bg-transparent !px-1 !py-1 text-[13px] shadow-none focus:ring-0" value={assistantId} onChange={(e) => setAssistantId(e.target.value)} aria-label={t('chat.assistant')}>
               {(assistants || []).map((a) => (
                 <option key={a.id} value={a.id}>{a.name}</option>
               ))}
@@ -601,10 +601,10 @@ export default function ChatPage() {
             <span className={`h-1.5 w-1.5 rounded-full ${aiBlocked ? 'bg-warn' : aiReady ? 'bg-ok' : 'bg-danger'}`} />
             {aiBlocked ? t('ai.blocked') : aiReady ? (activeProvider?.name || t('ai.ready')) : t('ai.offline')}
           </button>
-          <div className="flex items-center gap-1">
-            <label className="text-xs font-bold text-ink-faint">{t('chat.model')}</label>
+          <div className="flex items-center gap-1.5 rounded-lg border border-line bg-elevated/50 px-2 py-1">
+            <label className="text-[11px] font-bold text-ink-faint">{t('chat.model')}</label>
             <select
-              className="input !w-48 !py-1.5 text-sm"
+              className="input !w-44 !border-0 !bg-transparent !px-1 !py-1 text-[13px] shadow-none focus:ring-0"
               value={modelKey}
               onChange={(e) => setModelKey(e.target.value)}
               aria-label={t('chat.model')}
@@ -617,9 +617,9 @@ export default function ChatPage() {
               ))}
             </select>
           </div>
-          <div className="flex items-center gap-1">
-            <label className="text-xs font-bold text-ink-faint">{t('chat.mode')}</label>
-            <select className="input !w-32 !py-1.5 text-sm" value={mode} onChange={(e) => setMode(e.target.value)} aria-label={t('chat.mode')}>
+          <div className="flex items-center gap-1.5 rounded-lg border border-line bg-elevated/50 px-2 py-1">
+            <label className="text-[11px] font-bold text-ink-faint">{t('chat.mode')}</label>
+            <select className="input !w-28 !border-0 !bg-transparent !px-1 !py-1 text-[13px] shadow-none focus:ring-0" value={mode} onChange={(e) => setMode(e.target.value)} aria-label={t('chat.mode')}>
               {contextModes.map((m) => (
                 <option key={m} value={m}>{t(`chat.mode${m.charAt(0).toUpperCase() + m.slice(1)}`)}</option>
               ))}

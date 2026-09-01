@@ -4,7 +4,7 @@ import { api } from '../lib/api';
 import { useApi } from '../lib/useApi';
 import { useT } from '../lib/i18n';
 import type { SafePlan, TodayData } from '../lib/types';
-import { Badge, Button, Card, EmptyState, Field, Modal, Spinner } from '../components/ui';
+import { PageHeader, Badge, Button, Card, EmptyState, Field, Modal, Spinner } from '../components/ui';
 import { useAiAction } from '../lib/useAiAction';
 import AiResultBox from '../components/AiResultBox';
 import { SafeLivingRings, LivingGarden } from '../components/visualizations';
@@ -65,16 +65,15 @@ export default function SafeLivingPage() {
   };
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <h1 className="section-title">{t('safe.title')}</h1>
+    <div className="space-y-4">
+      <PageHeader title={t('safe.title')}>
         <Button onClick={() => { setEditing(null); setShowModal(true); }}>
           <Plus className="h-4 w-4" /> {t('safe.addPlan')}
         </Button>
-      </div>
+      </PageHeader>
 
       {/* Status + active plan */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-3 md:grid-cols-2">
         <Card>
           <div className="mb-2 flex items-center justify-between">
             <div className="flex items-center gap-2 text-brand-dark">
@@ -106,7 +105,7 @@ export default function SafeLivingPage() {
       </div>
 
       {/* Visual identity — rings + garden */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-3 md:grid-cols-2">
         <Card>
           <div className="mb-2 flex items-center gap-2 text-brand-dark">
             <ShieldCheck className="h-4 w-4" />
@@ -146,7 +145,7 @@ export default function SafeLivingPage() {
       ) : (plans || []).length === 0 ? (
         <EmptyState text={t('safe.plans')} />
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-2">
           {(plans || []).map((p) => (
             <Card key={p.id}>
               <div className="mb-1 flex items-start justify-between">

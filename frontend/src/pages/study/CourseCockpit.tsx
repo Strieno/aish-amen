@@ -74,7 +74,7 @@ export default function CourseCockpit({ detail, onRefetch }: { detail: CourseDet
       </div>
 
       {tab === 'overview' && (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-2">
           <Card className="!p-4">
             <p className="mb-2 text-sm font-bold text-ink">الإتقان العام</p>
             <div className="flex items-center gap-3">

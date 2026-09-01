@@ -3,7 +3,7 @@ import { Heart, Plus, Trash2 } from 'lucide-react';
 import { api } from '../lib/api';
 import { useApi } from '../lib/useApi';
 import { useT } from '../lib/i18n';
-import { Button, Card, EmptyState, Spinner } from '../components/ui';
+import { PageHeader, Button, Card, EmptyState, Spinner } from '../components/ui';
 import { PageBackdrop, celebrate } from '../components/visualizations';
 
 interface GratitudeRow {
@@ -41,12 +41,9 @@ export default function GratitudePage() {
   };
 
   return (
-    <div className="relative isolate space-y-5">
+    <div className="relative isolate space-y-4">
       <PageBackdrop variant="stars" />
-      <div>
-        <h1 className="section-title">{t('gratitude.title')}</h1>
-        <p className="text-sm text-ink-faint">{t('gratitude.subtitle')}</p>
-      </div>
+      <PageHeader title={t('gratitude.title')} subtitle={t('gratitude.subtitle')} />
 
       <Card>
         <div className="mb-3 flex items-center gap-2 text-brand-dark">

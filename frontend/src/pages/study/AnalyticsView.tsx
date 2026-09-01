@@ -81,7 +81,7 @@ export default function AnalyticsView() {
         <h2 className="section-title">تحليلات الدراسة</h2>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-3 md:grid-cols-2">
         <Card title="دقائق الدراسة (آخر 14 يوم)">
           {hasWeekly ? <Bars data={data.weekly.map((d) => ({ label: d.date.slice(5), value: d.minutes }))} /> : <Empty>لا توجد جلسات بعد — ابدأ أول جلسة لتظهر.</Empty>}
         </Card>

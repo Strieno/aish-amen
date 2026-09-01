@@ -5,7 +5,7 @@ import { api } from '../lib/api';
 import { useApi } from '../lib/useApi';
 import { useT } from '../lib/i18n';
 import type { Project, Task } from '../lib/types';
-import { Badge, Button, Card, EmptyState, Field, Modal, Select, Spinner, Toggle } from '../components/ui';
+import { Badge, Button, Card, EmptyState, Field, Modal, PageHeader, SectionHeader, Select, Spinner, Toggle } from '../components/ui';
 import { useAiAction } from '../lib/useAiAction';
 import AiResultBox from '../components/AiResultBox';
 import { celebrate } from '../components/visualizations';
@@ -107,17 +107,16 @@ export default function TasksPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="section-title">{t('tasks.title')}</h1>
+      <PageHeader title={t('tasks.title')}>
         <Button onClick={() => { setEditing(null); setShowModal(true); }}>
           <Plus className="h-4 w-4" /> {t('tasks.add')}
         </Button>
-      </div>
+      </PageHeader>
 
       {/* Quick add with smart capture */}
-      <Card className="!p-3">
+      <Card className="!p-2.5">
         <div className="flex items-center gap-2">
-          <Plus className="h-5 w-5 shrink-0 text-brand-dark" />
+          <Plus className="h-4 w-4 shrink-0 text-brand-dark" />
           <input
             ref={quickRef}
             className="input !border-0 !shadow-none focus:ring-0"
@@ -126,20 +125,20 @@ export default function TasksPage() {
             onChange={(e) => setQuickText(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && quickAdd()}
           />
-          <Button variant="ghost" onClick={quickAdd} className="!px-3 !py-2" title={t('common.add')}>
+          <Button variant="ghost" onClick={quickAdd} className="!px-2.5 !py-1.5" title={t('common.add')}>
             <ListChecks className="h-4 w-4" />
           </Button>
           <Button
             variant="ghost"
             onClick={() => quickText.trim() && interpret.run({ text: quickText })}
-            className="!px-3 !py-2"
+            className="!px-2.5 !py-1.5"
             disabled={!quickText.trim() || interpret.loading}
             title={t('ai.interpret')}
           >
             {interpret.loading ? <Spinner className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
           </Button>
         </div>
-        <p className="mt-1 px-1 text-[11px] text-ink-faint">{t('ai.interpretHint')}</p>
+        <p className="mt-0.5 px-1 text-[11px] text-ink-faint">{t('ai.interpretHint')}</p>
 
         {/* Interpretation suggestion */}
         {interpret.result?.kind === 'task' && interpret.result.suggestion && (
@@ -277,10 +276,7 @@ export default function TasksPage() {
 
       {/* AI breakdown */}
       <Card>
-        <div className="mb-2 flex items-center gap-2 text-brand-dark">
-          <Sparkles className="h-4 w-4" />
-          <h2 className="text-sm font-bold">{t('tasks.breakdown')}</h2>
-        </div>
+        <SectionHeader title={t('tasks.breakdown')} icon={Sparkles} />
         <div className="flex items-center gap-2">
           <input className="input" placeholder="دراسة OOP" aria-label={t('tasks.breakdown')} value={breakdownText} onChange={(e) => setBreakdownText(e.target.value)} />
           <Button variant="ghost" onClick={runBreakdown} disabled={breaking} aria-label={t('tasks.breakdown')}>
