@@ -5,7 +5,7 @@ import { useApi } from '../lib/useApi';
 import { useT } from '../lib/i18n';
 import { usePlayer } from '../lib/audio-player';
 import type { AudioFile, FocusSession, Task } from '../lib/types';
-import { Badge, Button, Card, EmptyState, Select } from '../components/ui';
+import { PageHeader, Badge, Button, Card, EmptyState, Select } from '../components/ui';
 import { celebrate, PageBackdrop } from '../components/visualizations';
 
 const PRESETS = [
@@ -118,12 +118,12 @@ export default function FocusPage() {
   const activeSoundIds = new Set(Object.keys(player.active));
 
   return (
-    <div className="relative isolate mx-auto max-w-2xl space-y-5">
+    <div className="relative isolate mx-auto max-w-2xl space-y-4">
       <PageBackdrop variant="rings" />
-      <h1 className="section-title">{t('focus.title')}</h1>
+      <PageHeader title={t('focus.title')} />
 
       <Card className="text-center">
-        <div className="relative mx-auto mb-4 h-44 w-44 ring-glow">
+        <div className="relative mx-auto mb-4 h-40 w-40 ring-glow">
           <div className="absolute inset-0 rounded-full border-8 border-line" />
           <div
             className="absolute inset-0 rounded-full border-8 border-brand-accent transition-all duration-1000"

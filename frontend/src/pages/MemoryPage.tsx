@@ -4,7 +4,7 @@ import { api } from '../lib/api';
 import { useApi } from '../lib/useApi';
 import { useT } from '../lib/i18n';
 import type { Memory } from '../lib/types';
-import { Badge, Button, Card, EmptyState, Field, Modal, Spinner, Toggle } from '../components/ui';
+import { PageHeader, Badge, Button, Card, EmptyState, Field, Modal, Spinner, Toggle } from '../components/ui';
 import { useAiAction } from '../lib/useAiAction';
 import { MemoryConstellation } from '../components/visualizations';
 
@@ -75,23 +75,20 @@ export default function MemoryPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="section-title">{t('memory.title')}</h1>
-        <div className="flex gap-2">
-          <Button variant="ghost" onClick={harvest} disabled={harvesting} className="!px-3 !py-2 text-xs" title={t('memory.harvestHint')}>
-            {harvesting ? <Spinner className="h-4 w-4" /> : <Brain className="h-4 w-4" />} {t('memory.harvest')}
-          </Button>
-          <Button variant="ghost" onClick={() => suggest.run()} disabled={suggest.loading} className="!px-3 !py-2 text-xs">
-            {suggest.loading ? <Spinner className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />} {t('ai.suggestMemories')}
-          </Button>
-          <Button variant="danger" onClick={deleteAll} className="!px-3 !py-2 text-xs">
-            <Trash2 className="h-4 w-4" /> {t('memory.deleteAll')}
-          </Button>
-          <Button onClick={() => setShowAdd(true)} className="!px-3 !py-2 text-xs">
-            <Plus className="h-4 w-4" /> {t('memory.add')}
-          </Button>
-        </div>
-      </div>
+      <PageHeader title={t('memory.title')}>
+        <Button variant="ghost" onClick={harvest} disabled={harvesting} className="!px-3 !py-2 text-xs" title={t('memory.harvestHint')}>
+          {harvesting ? <Spinner className="h-4 w-4" /> : <Brain className="h-4 w-4" />} {t('memory.harvest')}
+        </Button>
+        <Button variant="ghost" onClick={() => suggest.run()} disabled={suggest.loading} className="!px-3 !py-2 text-xs">
+          {suggest.loading ? <Spinner className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />} {t('ai.suggestMemories')}
+        </Button>
+        <Button variant="danger" onClick={deleteAll} className="!px-3 !py-2 text-xs">
+          <Trash2 className="h-4 w-4" /> {t('memory.deleteAll')}
+        </Button>
+        <Button onClick={() => setShowAdd(true)} className="!px-3 !py-2 text-xs">
+          <Plus className="h-4 w-4" /> {t('memory.add')}
+        </Button>
+      </PageHeader>
 
       {harvestMsg && <p className="text-sm font-bold text-ok">✓ {harvestMsg}</p>}
 

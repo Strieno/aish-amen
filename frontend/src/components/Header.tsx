@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Cloud, CloudOff, Plus, RefreshCw, Search, Settings, Sparkles } from 'lucide-react';
+import { Cloud, CloudOff, Leaf, Plus, RefreshCw, Search, Settings, Sparkles } from 'lucide-react';
 import { useAppStore } from '../lib/app-store';
 import { useT } from '../lib/i18n';
 import { useAuth } from '../cloud/AuthProvider';
@@ -22,20 +22,25 @@ export default function Header({ onOpenSmart, onOpenQuick }: { onOpenSmart: () =
   }).format(now);
 
   return (
-    <header className="relative z-10 flex items-center justify-between border-b border-line bg-card/60 px-4 py-3 backdrop-blur md:px-8">
+    <header className="relative z-10 flex h-14 shrink-0 items-center justify-between border-b border-line bg-card/60 px-4 backdrop-blur md:px-6">
       <div
         className="pointer-events-none absolute inset-x-0 bottom-[-1px] h-px bg-gradient-to-r from-transparent via-brand-accent/70 to-transparent"
         aria-hidden="true"
       />
-      <div className="animate-riseIn">
-        <p className="text-sm font-extrabold text-ink md:text-base">
-          <span className="text-gradient">{dateStr}</span>
-        </p>
-        <p className="text-xs text-ink-faint">
-          {now.toLocaleTimeString(settings.language === 'en' ? 'en' : 'ar', { hour: '2-digit', minute: '2-digit' })}
-        </p>
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="hidden h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand-dark lg:flex" aria-hidden="true">
+          <Leaf className="h-4 w-4" />
+        </span>
+        <div className="animate-riseIn">
+          <p className="text-sm font-bold leading-tight text-ink">
+            <span className="text-gradient">{dateStr}</span>
+          </p>
+          <p className="text-[11px] leading-tight text-ink-faint">
+            {now.toLocaleTimeString(settings.language === 'en' ? 'en' : 'ar', { hour: '2-digit', minute: '2-digit' })}
+          </p>
+        </div>
       </div>
-      <div className="flex items-center gap-2 md:gap-3">
+      <div className="flex items-center gap-1.5 md:gap-2">
         <ProgressBadge />
         <SurpriseButton label={false} className="!hidden !px-2 sm:!inline-flex" />
         {cloudEnabled && (
@@ -57,16 +62,16 @@ export default function Header({ onOpenSmart, onOpenQuick }: { onOpenSmart: () =
           title={`${t('common.search')} (Ctrl+K)`}
           aria-label={`${t('common.search')} (Ctrl+K)`}
         >
-          <Search className="h-5 w-5" />
+          <Search className="h-[18px] w-[18px]" />
         </button>
         <button onClick={onOpenQuick} className="btn-icon" title={t('quickCapture.title')} aria-label={t('quickCapture.title')}>
-          <Plus className="h-5 w-5" />
+          <Plus className="h-[18px] w-[18px]" />
         </button>
         <button onClick={onOpenSmart} className="btn-icon" title={t('smart.openPanel')} aria-label={t('smart.openPanel')}>
-          <Sparkles className="h-5 w-5" />
+          <Sparkles className="h-[18px] w-[18px]" />
         </button>
         <Link to="/settings" className="btn-icon" aria-label={t('nav.settings')}>
-          <Settings className="h-5 w-5" />
+          <Settings className="h-[18px] w-[18px]" />
         </Link>
       </div>
     </header>

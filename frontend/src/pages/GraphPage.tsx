@@ -6,7 +6,7 @@ import { useApi } from '../lib/useApi';
 import { useT } from '../lib/i18n';
 import { entityIcon, entityRoute } from '../lib/entity-utils';
 import type { GraphData, GraphNode } from '../lib/types';
-import { Button, Card, EmptyState } from '../components/ui';
+import { PageHeader, Button, Card, EmptyState } from '../components/ui';
 
 const TYPE_COLORS: Record<string, string> = {
   goal: '#2E7D32',
@@ -125,10 +125,7 @@ export default function GraphPage() {
 
   return (
     <div className="space-y-3">
-      <div>
-        <h1 className="section-title">{t('graph.title')}</h1>
-        <p className="text-sm text-ink-faint">{t('graph.hint')}</p>
-      </div>
+      <PageHeader title={t('graph.title')} subtitle={t('graph.hint')} />
 
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2">

@@ -43,28 +43,28 @@ export default function MobileNav() {
             role="dialog"
             aria-modal="true"
             aria-label={t('nav.more')}
-            className="card absolute inset-x-4 bottom-20 max-h-[62dvh] overflow-y-auto p-3 shadow-card-hover animate-fadeIn"
+            className="card absolute inset-x-4 bottom-24 max-h-[62dvh] overflow-y-auto p-2.5 shadow-card-hover animate-fadeIn"
           >
-            <div className="mb-2 flex items-center justify-between px-1">
+            <div className="mb-1.5 flex items-center justify-between px-1">
               <p className="text-sm font-bold text-ink">{t('nav.more')}</p>
               <button type="button" className="btn-icon" onClick={() => setMoreOpen(false)} aria-label={t('common.close')}>
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-1.5">
+            <div className="grid grid-cols-2 gap-1">
               {moreItems.map(({ id, path, labelKey, icon: Icon }) => (
                 <NavLink
                   key={id}
                   to={path}
                   onClick={() => setMoreOpen(false)}
                   className={({ isActive }) =>
-                    `flex min-h-12 items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition ${
+                    `flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-semibold transition ${
                       isActive ? 'bg-brand-soft text-brand-dark' : 'text-ink-soft hover:bg-elevated hover:text-ink'
                     }`
                   }
                 >
                   <Icon className="h-4 w-4 shrink-0" />
-                  <span>{t(labelKey)}</span>
+                  <span className="truncate">{t(labelKey)}</span>
                 </NavLink>
               ))}
             </div>
@@ -73,7 +73,7 @@ export default function MobileNav() {
       )}
 
       <nav
-        className="mobile-safe-nav fixed inset-x-0 bottom-0 z-50 flex min-h-16 items-center justify-around border-t border-line bg-card/95 px-2 py-2 backdrop-blur lg:hidden"
+        className="mobile-safe-nav fixed inset-x-0 bottom-0 z-50 flex min-h-16 items-center justify-around border-t border-line bg-card/95 px-1.5 py-1.5 backdrop-blur lg:hidden"
         aria-label={t('nav.mobile')}
       >
         {primaryItems.map(({ id, path, labelKey, icon: Icon }) => (
@@ -82,17 +82,17 @@ export default function MobileNav() {
             to={path}
             end={path === '/'}
             className={({ isActive }) =>
-              `relative flex min-w-14 flex-col items-center gap-0.5 rounded-xl px-2 py-1 text-[11px] font-semibold transition-all duration-200 ${
+              `relative flex min-w-16 flex-col items-center gap-0.5 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold transition-colors duration-150 ${
                 isActive
-                  ? 'bg-brand-soft text-brand-dark shadow-card'
-                  : 'text-ink-faint hover:-translate-y-0.5 hover:text-ink-soft'
+                  ? 'bg-brand-soft text-brand-dark'
+                  : 'text-ink-faint hover:text-ink-soft'
               }`
             }
           >
             {({ isActive }) => (
               <>
-                {isActive && <span className="absolute -top-1.5 mx-auto h-1 w-6 rounded-pill bg-gradient-to-r from-brand-accent to-brand" aria-hidden="true" />}
-                <Icon className={`h-5 w-5 transition-transform ${isActive ? 'scale-110 animate-breathe' : ''}`} />
+                {isActive && <span className="absolute -top-1.5 mx-auto h-0.5 w-7 rounded-pill bg-brand" aria-hidden="true" />}
+                <Icon className={`h-5 w-5 ${isActive ? 'scale-105' : ''} transition-transform`} />
                 <span>{t(labelKey)}</span>
               </>
             )}
@@ -103,7 +103,7 @@ export default function MobileNav() {
           onClick={() => setMoreOpen((open) => !open)}
           aria-expanded={moreOpen}
           aria-controls="mobile-more-menu"
-          className={`flex min-w-14 flex-col items-center gap-0.5 rounded-xl px-2 py-1 text-[11px] font-semibold ${
+          className={`flex min-w-16 flex-col items-center gap-0.5 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${
             moreActive || moreOpen ? 'bg-brand-soft text-brand-dark' : 'text-ink-faint'
           }`}
         >

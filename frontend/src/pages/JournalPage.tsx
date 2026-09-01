@@ -6,7 +6,7 @@ import { useApi } from '../lib/useApi';
 import { useT } from '../lib/i18n';
 import { useAppStore } from '../lib/app-store';
 import type { JournalEntry } from '../lib/types';
-import { Button, Card, EmptyState, Spinner, Toggle } from '../components/ui';
+import { PageHeader, Button, Card, EmptyState, Spinner, Toggle } from '../components/ui';
 import { useAiAction } from '../lib/useAiAction';
 import AiResultBox from '../components/AiResultBox';
 import RelatedPanel from '../components/RelatedPanel';
@@ -149,14 +149,13 @@ export default function JournalPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="section-title">{t('journal.title')}</h1>
+      <PageHeader title={t('journal.title')}>
         <Button onClick={newEntry}>
           <Plus className="h-4 w-4" /> {t('journal.newEntry')}
         </Button>
-      </div>
+      </PageHeader>
 
-      <div className="grid gap-4 md:grid-cols-[220px_1fr]">
+      <div className="grid gap-3 md:grid-cols-[220px_1fr]">
         {/* List */}
         <div className="space-y-1">
           {loading ? (

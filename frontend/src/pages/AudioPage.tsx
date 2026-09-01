@@ -5,7 +5,7 @@ import { useApi } from '../lib/useApi';
 import { useT } from '../lib/i18n';
 import { usePlayer } from '../lib/audio-player';
 import type { AudioFile, SoundScene } from '../lib/types';
-import { Button, Card, EmptyState, Field, Modal, Spinner } from '../components/ui';
+import { PageHeader, Button, Card, EmptyState, Field, Modal, Spinner } from '../components/ui';
 
 export default function AudioPage() {
   const t = useT();
@@ -63,18 +63,15 @@ export default function AudioPage() {
   };
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <h1 className="section-title">{t('audio.title')}</h1>
-        <div className="flex gap-2">
-          <Button onClick={() => setShowScene(true)} variant="ghost">
-            <Plus className="h-4 w-4" /> {t('audio.addScene')}
-          </Button>
-          <Button onClick={() => fileRef.current?.click()} disabled={importing}>
-            {importing ? <Spinner className="h-4 w-4" /> : <Upload className="h-4 w-4" />} {t('audio.import')}
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-4">
+      <PageHeader title={t('audio.title')}>
+        <Button onClick={() => setShowScene(true)} variant="ghost">
+          <Plus className="h-4 w-4" /> {t('audio.addScene')}
+        </Button>
+        <Button onClick={() => fileRef.current?.click()} disabled={importing}>
+          {importing ? <Spinner className="h-4 w-4" /> : <Upload className="h-4 w-4" />} {t('audio.import')}
+        </Button>
+      </PageHeader>
 
       {/* Scenes */}
       {(scenes || []).length > 0 && (

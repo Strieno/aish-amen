@@ -46,9 +46,9 @@ export default {
         button: '0 2px 8px -2px rgb(46 125 50 / 0.35)',
       },
       borderRadius: {
-        card: '16px',
-        bubble: '18px',
-        pill: '999px',
+        card: 'var(--radius-lg)',
+        bubble: 'var(--radius-bubble)',
+        pill: 'var(--radius-pill)',
       },
       keyframes: {
         fadeIn: {

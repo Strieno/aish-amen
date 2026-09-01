@@ -4,7 +4,7 @@ import { api } from '../lib/api';
 import { useApi } from '../lib/useApi';
 import { useT } from '../lib/i18n';
 import type { Goal, Milestone } from '../lib/types';
-import { Badge, Button, Card, EmptyState, Field, Modal, Spinner } from '../components/ui';
+import { PageHeader, Badge, Button, Card, EmptyState, Field, Modal, Spinner } from '../components/ui';
 import { useAiAction } from '../lib/useAiAction';
 import AiResultBox from '../components/AiResultBox';
 import RelatedPanel from '../components/RelatedPanel';
@@ -73,12 +73,11 @@ export default function GoalsPage() {
   return (
     <div className="relative isolate space-y-4">
       <PageBackdrop variant="path" />
-      <div className="flex items-center justify-between">
-        <h1 className="section-title">{t('goals.title')}</h1>
+      <PageHeader title={t('goals.title')}>
         <Button onClick={() => setShowModal(true)}>
           <Plus className="h-4 w-4" /> {t('goals.add')}
         </Button>
-      </div>
+      </PageHeader>
 
       <div className="flex flex-wrap gap-2">
         <button onClick={() => setAreaFilter('')} className={`chip cursor-pointer ${!areaFilter ? 'bg-brand text-white' : ''}`}>
@@ -96,7 +95,7 @@ export default function GoalsPage() {
       ) : filtered.length === 0 ? (
         <EmptyState text={t('goals.noGoals')} art={<GoalPathArt />} />
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-2">
           {filtered.map((g) => (
             <Card key={g.id}>
               <div className="flex items-start justify-between gap-2">

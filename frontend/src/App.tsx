@@ -43,8 +43,8 @@ export default function App() {
       <Sidebar />
       <div className="relative z-10 flex min-w-0 flex-1 flex-col">
         <Header onOpenSmart={() => setSmartOpen(true)} onOpenQuick={() => setQuickOpen(true)} />
-        <main className="flex-1 overflow-y-auto">
-          <div className="mx-auto w-full max-w-4xl px-4 pb-28 pt-6 md:px-8 lg:pb-10">
+        <main className="flex-1 overflow-y-auto" id="main-content">
+          <div className="mx-auto w-full max-w-5xl px-4 pb-28 pt-5 md:px-6 lg:pb-10 lg:pt-6">
             <ErrorBoundary>
               <Outlet />
             </ErrorBoundary>

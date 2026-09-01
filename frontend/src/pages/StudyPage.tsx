@@ -4,7 +4,7 @@ import { api } from '../lib/api';
 import { useApi } from '../lib/useApi';
 import { useT } from '../lib/i18n';
 import { normalizeCourseDetail, type CourseDetail, type CourseSummary, type StudyDashboard } from '../lib/study-types';
-import { Badge, Button, Card, EmptyState, Field, Modal, Spinner } from '../components/ui';
+import { Badge, Button, Card, EmptyState, Field, Modal, PageHeader, Spinner } from '../components/ui';
 import { PageBackdrop, celebrate } from '../components/visualizations';
 import SessionFlow from './study/SessionFlow';
 import CourseCockpit from './study/CourseCockpit';
@@ -91,20 +91,14 @@ export default function StudyPage() {
   const momentum = dash?.momentum;
 
   return (
-    <div className="relative isolate space-y-5">
+    <div className="relative isolate space-y-4">
       <PageBackdrop variant="study" />
 
       {/* ===== Header ===== */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="section-title">Study OS</h1>
-          <p className="text-sm text-ink-faint">مركز قيادتك الأكاديمية الشخصي</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <SessionFlow courses={courses || []} topicsByCourse={topicsByCourse} onOpenTutor={() => { setTab('courses'); setSelectedId((courses || [])[0]?.id || null); }} />
-          <Button variant="ghost" className="!px-3" onClick={() => setShowCourse(true)}><Plus className="h-4 w-4" /> {t('study.addCourse')}</Button>
-        </div>
-      </div>
+      <PageHeader title="Study OS" subtitle="مركز قيادتك الأكاديمية الشخصي">
+        <SessionFlow courses={courses || []} topicsByCourse={topicsByCourse} onOpenTutor={() => { setTab('courses'); setSelectedId((courses || [])[0]?.id || null); }} />
+        <Button variant="ghost" className="!px-3" onClick={() => setShowCourse(true)}><Plus className="h-4 w-4" /> {t('study.addCourse')}</Button>
+      </PageHeader>
 
       {/* Search */}
       <div className="relative">
@@ -134,15 +128,15 @@ export default function StudyPage() {
       {tab === 'overview' && (
         <div className="space-y-4">
           {/* Hero */}
-          <div className="hero-gradient shine relative overflow-hidden rounded-card border border-brand-lighter/60 p-6 shadow-card md:p-7 animate-riseIn">
+          <div className="hero-gradient relative overflow-hidden rounded-card border border-brand-lighter/60 p-4 shadow-card animate-riseIn">
             <div className="relative z-10">
-              <p className="text-2xl font-extrabold text-ink">{greeting()} 👋</p>
-              <div className="mt-1 flex flex-wrap gap-2 text-sm text-ink-soft">
+              <p className="text-xl font-extrabold leading-tight text-ink md:text-2xl">{greeting()} 👋</p>
+              <div className="mt-1.5 flex flex-wrap gap-x-2 gap-y-1 text-sm text-ink-soft">
                 <span>لديك <b className="text-ink">{dash?.coursesCount ?? 0} مواد</b></span>
                 {dash?.nextExam && <span>• أقرب اختبار: <b className="text-warn">{dash.nextExam.title}</b> ({dash.nextExam.exam_date})</span>}
                 {dash?.streak ? <span>• <b className="text-ink">{dash.streak} أيام</b> متتالية 🔥</span> : null}
               </div>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
+              <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
                 <span className="chip !bg-card/70">درست هذا الأسبوع: <b className="text-ink">{dash?.weekMinutes ?? 0} دقيقة</b></span>
                 <span className="chip !bg-card/70">التقدم الأسبوعي: <b className="text-ink">{dash?.weeklyProgress ?? 0}%</b></span>
                 {dash?.recommendations?.[0] && (
@@ -152,7 +146,7 @@ export default function StudyPage() {
                 )}
               </div>
               {dash?.recommendedToday ? (
-                <p className="mt-3 text-sm text-ink-soft">اقتراح اليوم: <b className="text-brand-dark">{dash.recommendedToday} دقيقة دراسة</b></p>
+                <p className="mt-2.5 text-[13px] text-ink-soft">اقتراح اليوم: <b className="text-brand-dark">{dash.recommendedToday} دقيقة دراسة</b></p>
               ) : null}
             </div>
           </div>
@@ -174,7 +168,7 @@ export default function StudyPage() {
           )}
 
           {/* Bento grid */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {/* Today plan */}
             <Card className="!p-4 lg:col-span-2">
               <div className="mb-2 flex items-center justify-between">
@@ -270,7 +264,7 @@ export default function StudyPage() {
         loading ? <Spinner className="mx-auto my-10 block h-7 w-7" /> : (courses || []).length === 0 ? (
           <EmptyState text={t('study.noCourses')} art={<StudyBookArt />} action={<Button onClick={() => setShowCourse(true)}><Plus className="h-4 w-4" /> {t('study.addCourse')}</Button>} />
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {(courses || []).map((c) => (
               <button key={c.id} type="button" onClick={() => { setSelectedId(c.id); loadDetail(c.id); }} className={`card card-hover p-4 text-start ${selected?.id === c.id ? 'border-brand' : ''}`}>
                 <div className="mb-2 flex items-start justify-between gap-2">
@@ -332,7 +326,7 @@ export default function StudyPage() {
 
       {/* ===== Review ===== */}
       {tab === 'review' && (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-2">
           <Card className="!p-4"><FlashcardsView /></Card>
           <Card className="!p-4"><MistakesView /></Card>
         </div>
@@ -397,7 +391,7 @@ function TodayPlanView({ onStart }: { onStart: () => void }) {
   }, []);
 
   return (
-    <div className="grid gap-4 md:grid-cols-2">
+    <div className="grid gap-3 md:grid-cols-2">
       <Card className="!p-4">
         <p className="mb-2 text-sm font-bold text-ink">خطة اليوم</p>
         {(plan?.items || []).length ? (

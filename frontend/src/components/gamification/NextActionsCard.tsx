@@ -19,7 +19,7 @@ export default function NextActionsCard({ className = '' }: { className?: string
   if (!actions || actions.length === 0) return null;
 
   return (
-    <div className={`card relative overflow-hidden p-5 ${className}`}>
+    <div className={`card relative overflow-hidden p-4 ${className}`}>
       <span className="pointer-events-none absolute -end-10 -top-10 h-28 w-28 rounded-full bg-brand-soft/70 blur-2xl" aria-hidden="true" />
       <p className="relative mb-3 flex items-center gap-2 text-sm font-bold text-ink">
         <Compass className="h-4 w-4 text-brand-dark" /> ماذا بعد؟

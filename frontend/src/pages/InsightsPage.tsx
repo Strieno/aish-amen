@@ -2,7 +2,7 @@ import { Activity, CheckCircle2, Clock, Hourglass, Sparkles } from 'lucide-react
 import { useApi } from '../lib/useApi';
 import { useT } from '../lib/i18n';
 import type { Insights } from '../lib/types';
-import { Button, Card, EmptyState, Spinner } from '../components/ui';
+import { PageHeader, Button, Card, EmptyState, Spinner } from '../components/ui';
 import { useAiAction } from '../lib/useAiAction';
 import AiResultBox from '../components/AiResultBox';
 
@@ -19,13 +19,12 @@ export default function InsightsPage() {
   const maxSessions = Math.max(1, ...sleepStudy.map((x) => x.sessions));
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <h1 className="section-title">{t('insights.title')}</h1>
+    <div className="space-y-4">
+      <PageHeader title={t('insights.title')}>
         <Button variant="ghost" className="!px-3 !py-2 text-xs" onClick={() => summary.run()} disabled={summary.loading}>
           {summary.loading ? <Spinner className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />} {t('ai.insightsSummary')}
         </Button>
-      </div>
+      </PageHeader>
       <AiResultBox loading={summary.loading} result={summary.result} compact />
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">

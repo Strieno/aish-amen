@@ -28,7 +28,7 @@ import { useApi } from '../lib/useApi';
 import { useT } from '../lib/i18n';
 import { normalizeAudioSettings, useAppStore, type Accent, type ThemeMode } from '../lib/app-store';
 import type { Assistant, AiModel, CloudAiStatus, Provider } from '../lib/types';
-import { Badge, Button, Card, Field, Modal, Select, Spinner, Toggle } from '../components/ui';
+import { PageHeader, Badge, Button, Card, Field, Modal, SectionHeader, Select, Spinner, Toggle } from '../components/ui';
 import { useAuth } from '../cloud/AuthProvider';
 import { useCloudStore } from '../cloud/store';
 import { inspectLegacySqlite, migrateLegacySqlite } from '../cloud/migration';
@@ -57,8 +57,8 @@ export default function SettingsPage() {
   const [section, setSection] = useState('general');
 
   return (
-    <div className="space-y-5">
-      <h1 className="section-title">{t('settings.title')}</h1>
+    <div className="space-y-4">
+      <PageHeader title={t('settings.title')} />
       <div className="flex flex-wrap gap-2" role="tablist" aria-label={t('settings.title')}>
         {SECTIONS.map((s) => (
           <button key={s} role="tab" aria-selected={section === s} onClick={() => setSection(s)} className={`chip cursor-pointer ${section === s ? 'bg-brand text-white' : ''}`}>
@@ -120,10 +120,7 @@ function AccountTab() {
 function SectionCard({ title, icon: Icon, children }: { title: string; icon: React.ElementType; children: React.ReactNode }) {
   return (
     <Card>
-      <div className="mb-3 flex items-center gap-2 text-brand-dark">
-        <Icon className="h-4 w-4" />
-        <h2 className="text-sm font-bold">{title}</h2>
-      </div>
+      <SectionHeader title={title} icon={Icon} className="mb-3" />
       {children}
     </Card>
   );
