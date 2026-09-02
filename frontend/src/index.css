@@ -163,6 +163,12 @@ html.dark.theme-warm {
     outline-offset: 2px;
     border-radius: var(--radius-sm);
   }
+  summary {
+    list-style: none;
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
   ::selection {
     background: rgb(var(--brand-lighter));
     color: rgb(var(--brand-dark));
@@ -280,10 +286,10 @@ html.dark.theme-warm {
 
   /* ---------- Typography ---------- */
   .page-title {
-    @apply text-2xl font-extrabold tracking-tight text-ink md:text-[26px];
+    @apply text-xl font-extrabold tracking-tight text-ink md:text-[22px];
   }
   .section-title {
-    @apply text-lg font-bold text-ink;
+    @apply text-[15px] font-bold text-ink;
   }
   .label {
     @apply mb-1 block text-[13px] font-semibold text-ink-soft;
@@ -351,7 +357,7 @@ html.dark.theme-warm {
     @apply flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-ink-soft transition hover:bg-brand-soft hover:text-brand-dark;
   }
   .empty {
-    @apply flex flex-col items-center justify-center gap-2 rounded-card border border-dashed border-line px-4 py-8 text-center text-sm text-ink-faint;
+    @apply flex flex-col items-center justify-center gap-2 rounded-card border border-dashed border-line px-4 py-5 text-center text-sm text-ink-faint;
   }
   .skeleton {
     @apply relative overflow-hidden rounded-md bg-elevated;

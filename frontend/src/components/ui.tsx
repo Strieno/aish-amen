@@ -1,6 +1,6 @@
 import { cloneElement, isValidElement, useEffect, useId, type ReactElement, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { X } from 'lucide-react';
+import { Sparkles, X } from 'lucide-react';
 import { useT } from '../lib/i18n';
 
 export function Spinner({ className = 'h-5 w-5' }: { className?: string }) {
@@ -99,15 +99,157 @@ export function StatCard({
   className?: string;
 }) {
   const inner = (
-    <Card hover className={`!p-4 text-center ${className}`}>
-      <span className="mx-auto mb-1.5 flex h-8 w-8 items-center justify-center rounded-lg bg-brand-soft text-brand-dark">
-        <Icon className="h-4 w-4" />
+    <Card hover className={`!p-3 text-center ${className}`}>
+      <span className="mx-auto mb-1 flex h-7 w-7 items-center justify-center rounded-lg bg-brand-soft text-brand-dark">
+        <Icon className="h-3.5 w-3.5" />
       </span>
-      <p className="text-xl font-extrabold leading-none text-ink">{value}</p>
-      <p className="mt-1 truncate text-xs text-ink-faint">{label}</p>
+      <p className="text-lg font-extrabold leading-none text-ink" dir="auto">{value}</p>
+      <p className="mt-1 truncate text-[11px] text-ink-faint">{label}</p>
     </Card>
   );
   return to ? <Link to={to} className="block">{inner}</Link> : inner;
+}
+
+/**
+ * Compact card — a small information-dense surface.
+ * Prefer this over the default `Card` inside dashboards and grids.
+ */
+export function CompactCard({
+  children,
+  className = '',
+  hover = false,
+}: {
+  children: ReactNode;
+  className?: string;
+  hover?: boolean;
+}) {
+  return <div className={`card !p-3 ${hover ? 'card-hover' : ''} ${className}`}>{children}</div>;
+}
+
+/**
+ * Small titled widget used on the home dashboard.
+ * Icon + title row with an optional trailing link/action, then the body.
+ */
+export function SmartWidget({
+  title,
+  icon: Icon,
+  action,
+  children,
+  className = '',
+  bodyClassName = '',
+}: {
+  title: string;
+  icon?: React.ElementType;
+  action?: ReactNode;
+  children?: ReactNode;
+  className?: string;
+  bodyClassName?: string;
+}) {
+  return (
+    <CompactCard className={`flex flex-col ${className}`}>
+      <div className="mb-1.5 flex min-h-5 items-center gap-1.5">
+        {Icon && <Icon className="h-3.5 w-3.5 shrink-0 text-brand-dark" aria-hidden="true" />}
+        <h3 className="truncate text-xs font-bold text-ink">{title}</h3>
+        {action && <span className="ms-auto flex shrink-0 items-center">{action}</span>}
+      </div>
+      <div className={`min-w-0 flex-1 text-[13px] ${bodyClassName}`}>{children}</div>
+    </CompactCard>
+  );
+}
+
+/**
+ * Compact action button used in quick-action strips and command rows.
+ * One tap target; icon-first with an optional short label and tone.
+ */
+export function QuickAction({
+  label,
+  icon: Icon,
+  onClick,
+  tone = 'default',
+  disabled = false,
+  title,
+}: {
+  label: string;
+  icon: React.ElementType;
+  onClick: () => void;
+  tone?: 'default' | 'brand' | 'accent' | 'warm';
+  disabled?: boolean;
+  title?: string;
+}) {
+  const tones = {
+    default: 'bg-card text-ink-soft border-line hover:border-brand-lighter hover:text-brand-dark hover:bg-brand-soft/60',
+    brand: 'bg-brand-soft text-brand-dark border-brand-lighter/70 hover:bg-brand-soft',
+    accent: 'bg-brand text-white border-transparent hover:bg-brand-dark shadow-button',
+    warm: 'bg-warn-bg text-warn border-warn-border hover:bg-warn-bg/70',
+  } as const;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title || label}
+      aria-label={label}
+      className={`inline-flex min-h-9 min-w-0 items-center justify-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-xs font-semibold transition-all duration-150 focus-visible:ring-4 focus-visible:ring-brand/20 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 ${tones[tone]}`}
+    >
+      <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+      <span className="truncate">{label}</span>
+    </button>
+  );
+}
+
+/** Small colored status pill for a compact summary line. */
+export function StatusChip({
+  children,
+  tone = 'neutral',
+  className = '',
+}: {
+  children: ReactNode;
+  tone?: 'ok' | 'warn' | 'danger' | 'brand' | 'neutral';
+  className?: string;
+}) {
+  const tones = {
+    ok: 'bg-ok-bg text-ok',
+    warn: 'bg-warn-bg text-warn border border-warn-border',
+    danger: 'bg-danger-bg text-danger border border-danger-border',
+    brand: 'bg-brand-soft text-brand-dark',
+    neutral: 'bg-elevated text-ink-soft border border-line',
+  } as const;
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-pill px-2 py-0.5 text-[11px] font-semibold leading-5 ${tones[tone]} ${className}`}>
+      {children}
+    </span>
+  );
+}
+
+/**
+ * One-line contextual suggestion banner (intelligent micro-interaction).
+ * Text on the start side; optional inline actions on the end side.
+ */
+export function SmartSuggestion({
+  text,
+  actions,
+  tone = 'brand',
+  className = '',
+}: {
+  text: string;
+  actions?: ReactNode;
+  tone?: 'brand' | 'warn' | 'info';
+  className?: string;
+}) {
+  const tones = {
+    brand: 'border-brand-lighter/70 bg-brand-soft/70 text-ink',
+    warn: 'border-warn-border bg-warn-bg/80 text-ink',
+    info: 'border-line bg-elevated/70 text-ink',
+  } as const;
+  return (
+    <div className={`flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border px-3 py-2 text-[13px] leading-relaxed ${tones[tone]} ${className}`} role="status">
+      <p className="flex min-w-0 flex-1 items-center gap-1.5">
+        <Sparkles className="h-3.5 w-3.5 shrink-0 text-brand-dark" aria-hidden="true" />
+        <span>{text}</span>
+      </p>
+      {actions && <div className="flex shrink-0 flex-wrap items-center gap-1.5">{actions}</div>}
+    </div>
+  );
 }
 
 /** Lightweight skeleton placeholder that respects reduced motion. */

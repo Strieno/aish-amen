@@ -18,6 +18,7 @@ import { useAppStore } from './lib/app-store';
 export default function App() {
   const [smartOpen, setSmartOpen] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
+  const [quickType, setQuickType] = useState<'task' | 'journal' | 'gratitude'>('task');
   const uiSounds = useAppStore((s) => s.settings.audio?.uiSounds);
   const quietHours = useAppStore((s) => s.settings.quietHours);
 
@@ -31,20 +32,31 @@ export default function App() {
     const onKey = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === 'a') {
         event.preventDefault();
+        setQuickType('task');
         setQuickOpen(true);
       }
     };
+    const onQuickEvent = (event: Event) => {
+      const detail = (event as CustomEvent<{ type?: 'task' | 'journal' | 'gratitude' }>).detail;
+      setQuickType(detail?.type ?? 'task');
+      setQuickOpen(true);
+    };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener('aish:open-quick-capture', onQuickEvent);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('aish:open-quick-capture', onQuickEvent);
+    };
   }, []);
+
   return (
     <div className="relative flex h-dvh overflow-hidden bg-canvas text-ink">
       <AmbientBackground />
       <Sidebar />
       <div className="relative z-10 flex min-w-0 flex-1 flex-col">
-        <Header onOpenSmart={() => setSmartOpen(true)} onOpenQuick={() => setQuickOpen(true)} />
+        <Header onOpenSmart={() => setSmartOpen(true)} onOpenQuick={() => { setQuickType('task'); setQuickOpen(true); }} />
         <main className="flex-1 overflow-y-auto" id="main-content">
-          <div className="mx-auto w-full max-w-5xl px-4 pb-28 pt-5 md:px-6 lg:pb-10 lg:pt-6">
+          <div className="mx-auto w-full max-w-6xl px-3 pb-24 pt-3 md:px-5 lg:pb-10 lg:pt-4">
             <ErrorBoundary>
               <Outlet />
             </ErrorBoundary>
@@ -55,7 +67,7 @@ export default function App() {
       <CommandPalette />
       <AiAssistantPanel />
       <SmartContextPanel open={smartOpen} onClose={() => setSmartOpen(false)} />
-      <QuickCapture open={quickOpen} onClose={() => setQuickOpen(false)} />
+      <QuickCapture open={quickOpen} onClose={() => setQuickOpen(false)} initialType={quickType} />
       <CompletionBurst />
       <ProgressProvider />
       <ProgressPanel />

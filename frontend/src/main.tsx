@@ -26,6 +26,7 @@ const InsightsPage = lazy(() => import('./pages/InsightsPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const GraphPage = lazy(() => import('./pages/GraphPage'));
 const TimelinePage = lazy(() => import('./pages/TimelinePage'));
+const HelpPage = lazy(() => import('./pages/HelpPage'));
 
 function PageFallback() {
   const t = useT();
@@ -82,6 +83,7 @@ function Boot() {
             <Route path="/insights" element={<InsightsPage />} />
             <Route path="/graph" element={<GraphPage />} />
             <Route path="/timeline" element={<TimelinePage />} />
+            <Route path="/help" element={<HelpPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>

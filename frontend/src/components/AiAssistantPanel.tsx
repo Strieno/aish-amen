@@ -148,7 +148,7 @@ export default function AiAssistantPanel() {
       {location.pathname !== '/chat' && (
         <button
           onClick={() => setOpen((v) => !v)}
-          className="fixed bottom-20 start-4 z-40 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand text-white shadow-button transition hover:bg-brand-dark active:scale-95 lg:bottom-6 lg:end-6 lg:start-auto"
+          className="fixed bottom-24 start-3 z-40 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand text-white shadow-button transition hover:bg-brand-dark active:scale-95 lg:bottom-6 lg:end-6 lg:start-auto"
           aria-label={t('ai.askAssistant')}
           title={t('ai.askAssistant')}
           aria-expanded={open}

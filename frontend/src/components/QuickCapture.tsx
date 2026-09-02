@@ -8,9 +8,17 @@ import { localDateKey } from '../lib/date';
 
 type CaptureType = 'task' | 'journal' | 'gratitude';
 
-export default function QuickCapture({ open, onClose }: { open: boolean; onClose: () => void }) {
+export default function QuickCapture({
+  open,
+  onClose,
+  initialType = 'task',
+}: {
+  open: boolean;
+  onClose: () => void;
+  initialType?: CaptureType;
+}) {
   const t = useT();
-  const [type, setType] = useState<CaptureType>('task');
+  const [type, setType] = useState<CaptureType>(initialType);
   const [text, setText] = useState('');
   const [title, setTitle] = useState('');
   const [priority, setPriority] = useState('medium');
@@ -21,9 +29,10 @@ export default function QuickCapture({ open, onClose }: { open: boolean; onClose
 
   useEffect(() => {
     if (!open) return;
+    setType(initialType);
     setSaved(false);
     setError('');
-  }, [open]);
+  }, [open, initialType]);
 
   const resetAndClose = () => {
     setText('');

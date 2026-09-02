@@ -83,12 +83,15 @@ interface AppState {
   ready: boolean;
   settings: Settings;
   sidebarVisible: string[];
+  /** Desktop sidebar collapsed to an icon rail (UI-only, not synced). */
+  sidebarCollapsed: boolean;
   loadSettings: () => Promise<void>;
   updateSettings: (patch: Partial<Settings>) => Promise<void>;
   setLanguage: (lang: string) => Promise<void>;
   setThemeMode: (mode: ThemeMode) => void;
   setAccent: (accent: Accent) => void;
   toggleSidebarItem: (id: string) => void;
+  toggleSidebarCollapsed: () => void;
 }
 
 const defaultSettings: Settings = {
@@ -125,6 +128,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   ready: false,
   settings: defaultSettings,
   sidebarVisible: defaultSettings.sidebarVisible,
+  sidebarCollapsed: false,
 
   loadSettings: async () => {
     try {
@@ -180,4 +184,6 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ sidebarVisible: next });
     get().updateSettings({ sidebarVisible: next });
   },
+
+  toggleSidebarCollapsed: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
 }));
