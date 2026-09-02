@@ -35,7 +35,7 @@ export function Button({
 }
 
 export function Card({ children, className = '', hover = false }: { children: ReactNode; className?: string; hover?: boolean }) {
-  return <div className={`card p-4 ${hover ? 'card-hover' : ''} ${className}`}>{children}</div>;
+  return <div className={`card p-3.5 ${hover ? 'card-hover' : ''} ${className}`}>{children}</div>;
 }
 
 /** Consistent page header: title + optional subtitle + actions. */

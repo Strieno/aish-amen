@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { BookOpen, CornerDownLeft, Heart, ListTodo, Search, Sparkles, Timer } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { BookOpen, CornerDownLeft, Heart, ListTodo, Search, Sparkles, SunMoon, Timer, Wand2 } from 'lucide-react';
 import { api } from '../lib/api';
 import { NAV_ITEMS, navGroups } from '../lib/nav';
 import { useT } from '../lib/i18n';
+import { useAppStore } from '../lib/app-store';
 import { entityIcon, entityRoute } from '../lib/entity-utils';
 import type { SearchResults } from '../lib/types';
 
@@ -15,13 +16,18 @@ interface QuickCommand {
   groupLabel?: string;
 }
 
+const COMMAND_GROUP = 'palette.commands';
+
 /**
- * Ctrl+K command palette: universal search across every module plus grouped
- * quick-create & navigation commands. Fully keyboard-navigable (↑/↓ + Enter).
+ * Ctrl+K command palette: universal search, quick-create, navigation AND a
+ * Raycast-style command runner — type "خطط لي اليوم" and press Enter.
  */
 export default function CommandPalette() {
   const t = useT();
   const navigate = useNavigate();
+  const location = useLocation();
+  const theme = useAppStore((s) => s.settings.theme);
+  const setThemeMode = useAppStore((s) => s.setThemeMode);
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const [results, setResults] = useState<SearchResults | null>(null);
@@ -77,7 +83,20 @@ export default function CommandPalette() {
     };
   }, [q, open]);
 
-  // Close when results come in if the input moved away from the flow.
+  /** Run an arbitrary natural-language command on the dashboard. */
+  const runTextCommand = (text: string) => {
+    const goHomeAndRun = () => {
+      if (location.pathname !== '/') {
+        navigate('/');
+        window.setTimeout(() => window.dispatchEvent(new CustomEvent('aish:run-command', { detail: { text } })), 400);
+      } else {
+        window.dispatchEvent(new CustomEvent('aish:run-command', { detail: { text } }));
+      }
+    };
+    goHomeAndRun();
+    setOpen(false);
+  };
+
   const quickCommands = useMemo<QuickCommand[]>(() => {
     const close = () => setOpen(false);
     const create: QuickCommand[] = [
@@ -85,8 +104,11 @@ export default function CommandPalette() {
       { id: 'new-journal', label: `${t('quickActions.note')} — ${t('common.add')}`, icon: BookOpen, run: () => { navigate('/journal?new=1'); close(); } },
       { id: 'new-gratitude', label: `${t('quickActions.gratitude')} — ${t('common.add')}`, icon: Heart, run: () => { navigate('/gratitude'); close(); } },
       { id: 'new-checkin', label: `${t('quickActions.checkin')}`, icon: Heart, run: () => { navigate('/safe'); close(); } },
-      { id: 'focus', label: `${t('focus.start')} ${t('nav.focus')}`, icon: Timer, run: () => { navigate('/focus'); close(); } },
-      { id: 'ask-ai', label: `${t('quickActions.chat')} (${t('ai.title')})`, icon: Sparkles, run: () => { navigate('/chat'); close(); } },
+      { id: 'ask-ai', label: `${t('palette.askAi')}`, icon: Sparkles, run: () => { navigate('/chat'); close(); } },
+      { id: 'plan-day', label: `${t('palette.plan')}`, icon: Wand2, groupLabel: t(COMMAND_GROUP), run: () => runTextCommand('خطط لي اليوم') },
+      { id: 'focus', label: `${t('palette.focus')}`, icon: Timer, groupLabel: t(COMMAND_GROUP), run: () => { navigate('/focus'); close(); } },
+      { id: 'simplify', label: `${t('palette.simplify')}`, icon: Sparkles, groupLabel: t(COMMAND_GROUP), run: () => runTextCommand('بسّط اليوم') },
+      { id: 'theme-toggle', label: `${t('palette.themeToggle')}`, icon: SunMoon, groupLabel: t(COMMAND_GROUP), run: () => { setThemeMode(theme === 'dark' ? 'light' : 'dark'); close(); } },
     ];
     const visibleIds = new Set(NAV_ITEMS.map((i) => i.id));
     const nav: QuickCommand[] = navGroups(NAV_ITEMS.filter((i) => visibleIds.has(i.id)))
@@ -100,9 +122,10 @@ export default function CommandPalette() {
         })),
       );
     return [...create, ...nav];
-  }, [t, navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t, navigate, location.pathname, theme]);
 
-  const showResults = results && results.total > 0;
+  const showResults = Boolean(results && results.total > 0);
   const filteredCommands = useMemo(() => {
     if (showResults) return quickCommands;
     const term = q.trim().toLowerCase();
@@ -110,7 +133,6 @@ export default function CommandPalette() {
     return list.slice(0, 24);
   }, [quickCommands, q, showResults]);
 
-  // Reset active when the visible list changes.
   useEffect(() => {
     if (active >= filteredCommands.length) setActive(0);
   }, [filteredCommands.length, active]);
@@ -120,17 +142,16 @@ export default function CommandPalette() {
   const runActive = () => filteredCommands[active]?.run();
 
   const onListKeyDown = (e: React.KeyboardEvent) => {
-    if (!showResults && filteredCommands.length > 0) {
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        setActive((a) => (a + 1) % filteredCommands.length);
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        setActive((a) => (a - 1 + filteredCommands.length) % filteredCommands.length);
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
-        runActive();
-      }
+    if (e.key === 'ArrowDown' && filteredCommands.length > 0) {
+      e.preventDefault();
+      setActive((a) => (a + 1) % filteredCommands.length);
+    } else if (e.key === 'ArrowUp' && filteredCommands.length > 0) {
+      e.preventDefault();
+      setActive((a) => (a - 1 + filteredCommands.length) % filteredCommands.length);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (filteredCommands.length > 0) runActive();
+      else if (q.trim()) runTextCommand(q.trim());
     }
   };
 
@@ -161,7 +182,7 @@ export default function CommandPalette() {
           {showResults && results ? (
             /* ---- Search results ---- */
             <div className="mt-1">
-              <p className="px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-ink-faint">{t('search.title')}</p>
+              <p className="px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-ink-faint">{t('palette.searchTitle')}</p>
               {results.groups.map((g) => (
                 <div key={g.type}>
                   <p className="px-2 pb-0.5 pt-1.5 text-[10px] font-bold text-ink-faint">{g.label}</p>
@@ -184,13 +205,6 @@ export default function CommandPalette() {
                     );
                   })}
                 </div>
-              ))}
-              <p className="px-2 pb-0.5 pt-2 text-[10px] font-bold uppercase tracking-wide text-ink-faint">{t('common.actions')}</p>
-              {quickCommands.slice(0, 6).map((c) => (
-                <button key={c.id} type="button" onClick={c.run} className="menu-item w-full text-start">
-                  <c.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-                  <span className="min-w-0 flex-1 truncate">{c.label}</span>
-                </button>
               ))}
             </div>
           ) : (
@@ -222,7 +236,19 @@ export default function CommandPalette() {
                   </button>
                 </div>
               ))}
-              {!searching && filteredCommands.length === 0 && <p className="px-3 py-3 text-sm text-ink-faint">{t('search.noResults')}</p>}
+              {!searching && filteredCommands.length === 0 && q.trim() && (
+                <button
+                  type="button"
+                  onClick={() => runTextCommand(q.trim())}
+                  className="menu-item w-full text-start"
+                >
+                  <Sparkles className="h-4 w-4 shrink-0 text-brand-dark" aria-hidden="true" />
+                  <span className="min-w-0 flex-1 truncate">
+                    {t('palette.cmdHint')}: «{q.trim()}»
+                  </span>
+                  <CornerDownLeft className="h-3 w-3 shrink-0 opacity-50" aria-hidden="true" />
+                </button>
+              )}
             </div>
           )}
         </div>

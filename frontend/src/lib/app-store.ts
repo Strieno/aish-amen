@@ -103,7 +103,7 @@ const defaultSettings: Settings = {
   privacy: { maxPrivacy: false, blockCloud: false, analytics: false },
   audio: DEFAULT_AUDIO_SETTINGS,
   simpleMode: 'true',
-  sidebarVisible: ['today', 'chat', 'safe', 'tasks', 'study', 'work', 'journal', 'goals', 'gratitude', 'memory', 'knowledge', 'audio', 'focus', 'insights', 'settings'],
+  sidebarVisible: ['today', 'study', 'life', 'chat', 'tasks', 'safe', 'gratitude', 'journal', 'goals', 'work', 'memory', 'knowledge', 'focus', 'audio', 'insights', 'graph', 'timeline', 'help', 'settings'],
 };
 
 export function resolveThemeMode(): 'light' | 'dark' {
@@ -117,7 +117,15 @@ export function resolveThemeMode(): 'light' | 'dark' {
 
 export function applyTheme(mode: ThemeMode, accent: Accent) {
   const root = document.documentElement;
-  root.classList.toggle('dark', resolveThemeMode() === 'dark');
+  const resolved =
+    mode === 'system'
+      ? window.matchMedia('(prefers-color-scheme: dark)').matches
+        ? 'dark'
+        : 'light'
+      : mode === 'dark'
+        ? 'dark'
+        : 'light';
+  root.classList.toggle('dark', resolved === 'dark');
   root.classList.remove('theme-green', 'theme-midnight', 'theme-warm', 'theme-contrast');
   root.classList.add(`theme-${accent}`);
   localStorage.setItem('aish.theme', mode);
@@ -134,7 +142,14 @@ export const useAppStore = create<AppState>((set, get) => ({
     try {
       const s = (await api.get<Settings>('/settings')) || {};
       const merged: Settings = { ...defaultSettings, ...s, audio: normalizeAudioSettings(s.audio) };
-      set({ settings: merged, sidebarVisible: merged.sidebarVisible || defaultSettings.sidebarVisible });
+      // Migrate older saved nav lists that predate new sections.
+      const saved = Array.isArray(merged.sidebarVisible) ? merged.sidebarVisible : [];
+      const migrated = [...new Set([...saved, ...defaultSettings.sidebarVisible])];
+      if (migrated.length !== saved.length) {
+        merged.sidebarVisible = migrated;
+        void api.put('/settings', { sidebarVisible: migrated }).catch(() => {});
+      }
+      set({ settings: merged, sidebarVisible: migrated });
       useI18nStore.getState().setLang(merged.language === 'en' ? 'en' : 'ar');
       document.documentElement.lang = merged.language === 'en' ? 'en' : 'ar';
       document.documentElement.dir = merged.language === 'en' ? 'ltr' : 'rtl';

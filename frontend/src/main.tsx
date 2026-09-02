@@ -10,6 +10,7 @@ import { liveBus } from './lib/live';
 import AuthProvider from './cloud/AuthProvider';
 
 const TodayPage = lazy(() => import('./pages/TodayPage'));
+const LifePage = lazy(() => import('./pages/LifePage'));
 const ChatPage = lazy(() => import('./pages/ChatPage'));
 const TasksPage = lazy(() => import('./pages/TasksPage'));
 const JournalPage = lazy(() => import('./pages/JournalPage'));
@@ -68,6 +69,7 @@ function Boot() {
         <Route element={<App />}>
           <Route element={<Suspense fallback={<PageFallback />}><Outlet /></Suspense>}>
             <Route path="/" element={<TodayPage />} />
+            <Route path="/life" element={<LifePage />} />
             <Route path="/chat" element={<ChatPage />} />
             <Route path="/safe" element={<SafeLivingPage />} />
             <Route path="/tasks" element={<TasksPage />} />

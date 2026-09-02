@@ -323,7 +323,7 @@ html.dark.theme-warm {
 
   /* ---------- Forms ---------- */
   .input {
-    @apply w-full rounded-xl border border-line bg-card px-3 py-2 text-sm text-ink placeholder:text-ink-faint transition focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/15 disabled:cursor-not-allowed disabled:opacity-60;
+    @apply w-full rounded-xl border border-line bg-card px-2.5 py-1.5 text-sm text-ink placeholder:text-ink-faint transition focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/15 disabled:cursor-not-allowed disabled:opacity-60;
   }
   .input-search {
     @apply input ps-8;
@@ -343,7 +343,7 @@ html.dark.theme-warm {
 
   /* ---------- Chips / badges ---------- */
   .chip {
-    @apply inline-flex items-center gap-1 rounded-pill bg-brand-soft px-2.5 py-0.5 text-xs font-semibold text-brand-dark;
+    @apply inline-flex items-center gap-1 rounded-pill bg-brand-soft px-2 py-0.5 text-xs font-semibold text-brand-dark;
   }
   .badge {
     @apply inline-flex items-center gap-1 rounded-pill px-2 py-0.5 text-[11px] font-semibold;

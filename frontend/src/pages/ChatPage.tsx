@@ -77,6 +77,13 @@ export default function ChatPage() {
   const audioSettings = useAppStore((s) => s.settings.audio);
   const [params] = useSearchParams();
   const convId = params.get('conv');
+  const prefillQ = params.get('q') || '';
+
+  // Prefill the composer when opened with a ?q= command from the palette/dashboard.
+  useEffect(() => {
+    if (prefillQ) setInput((v) => (v ? v : prefillQ));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefillQ]);
 
   const { data: assistants } = useApi<Assistant[]>('/assistants');
   const { data: models } = useApi<AiModel[]>('/models');

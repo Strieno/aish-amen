@@ -6,8 +6,9 @@ import { useAppStore } from '../lib/app-store';
 import { useT } from '../lib/i18n';
 
 /**
- * Mobile bottom navigation: 4 primary sections + a "More" sheet that
- * holds every secondary section, grouped. Everything stays 1–2 taps away.
+ * Mobile bottom navigation: 4 primary doors (Today / Study / Life / AI)
+ * + a "More" sheet that holds every secondary section, grouped.
+ * Everything stays 1–2 taps away.
  */
 export default function MobileNav() {
   const t = useT();

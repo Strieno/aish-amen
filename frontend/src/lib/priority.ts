@@ -86,3 +86,89 @@ export function bestNextTask(tasks: Task[], today: string = localDateKey()): Tas
   const open = sortOpenTasks(tasks, today).filter((t) => t.status !== 'done' && t.status !== 'cancelled');
   return open[0] ?? null;
 }
+
+/* ================= Adaptive day engine (v2) =================
+ * Categorizes open tasks into four calm buckets:
+ *   الآن (Now) / اليوم (Today) / لاحقاً (Later) / اختياري (Optional)
+ * and re-ranks them with the user's energy, the time of day and
+ * study pressure in mind — so the dashboard never overwhelms.
+ */
+
+export type DayTier = 'now' | 'today' | 'later' | 'optional';
+
+export interface RankedTask {
+  task: Task;
+  tier: DayTier;
+  score: number;
+  overdueDays: number;
+  daysUntilDue: number | null;
+}
+
+export interface DayContext {
+  /** Check-in energy 1..5, or null when unknown. */
+  energy: number | null;
+  /** Current hour 0..23. */
+  hour: number;
+  /** Days until the nearest exam, or null when none. */
+  examDays: number | null;
+}
+
+/** Short, low-effort tasks — the right pick when energy is low. */
+export function isLightTask(task: Task): boolean {
+  const est = Number(task.est_minutes || 0);
+  return task.energy === 'low' || (est > 0 && est <= 15);
+}
+
+export function lightTasks(tasks: Task[]): Task[] {
+  return tasks.filter((t) => t.status !== 'done' && t.status !== 'cancelled' && isLightTask(t));
+}
+
+/** Rank open tasks for the day with adaptive context. */
+export function rankDay(tasks: Task[], today: string = localDateKey(), ctx: DayContext = { energy: null, hour: 12, examDays: null }): RankedTask[] {
+  const lateNight = ctx.hour >= 22 || ctx.hour < 5;
+  const lowEnergy = ctx.energy != null && ctx.energy <= 2;
+  const highEnergy = ctx.energy != null && ctx.energy >= 4;
+  const examSoon = ctx.examDays != null && ctx.examDays <= 7;
+
+  return tasks
+    .filter((t) => t.status !== 'done' && t.status !== 'cancelled')
+    .map((task) => {
+      const info = priorityInfo(task, today);
+      let score = info.score;
+
+      // Energy awareness: easy tasks rise, heavy tasks sink (and vice-versa).
+      if (lowEnergy) {
+        if (task.energy === 'low' || (Number(task.est_minutes || 0) > 0 && Number(task.est_minutes) <= 15)) score += 10;
+        if (task.energy === 'high' || Number(task.est_minutes || 0) >= 60) score -= 12;
+      } else if (highEnergy) {
+        if (task.energy === 'high') score += 6;
+      }
+
+      // Late night: heavy work waits for tomorrow.
+      if (lateNight && Number(task.est_minutes || 0) >= 60) score -= 12;
+
+      // Study pressure: course-linked tasks become urgent before an exam.
+      if (examSoon && task.course_id) score += 10;
+
+      let tier: DayTier;
+      if (info.overdueDays > 0 || (score >= 75 && info.daysUntilDue !== null && info.daysUntilDue <= 2)) tier = 'now';
+      else if (info.daysUntilDue === 0 || score >= 45) tier = 'today';
+      else if (score >= 15 || (info.daysUntilDue !== null && info.daysUntilDue <= 7)) tier = 'later';
+      else tier = 'optional';
+
+      return { task, tier, score, overdueDays: info.overdueDays, daysUntilDue: info.daysUntilDue };
+    })
+    .sort((a, b) => b.score - a.score);
+}
+
+/** Group ranked tasks into their day buckets. */
+export function groupDayTasks(ranked: RankedTask[]): Record<DayTier, RankedTask[]> {
+  const out: Record<DayTier, RankedTask[]> = { now: [], today: [], later: [], optional: [] };
+  for (const r of ranked) out[r.tier].push(r);
+  return out;
+}
+
+export const DAY_TIER_ORDER: DayTier[] = ['now', 'today', 'later', 'optional'];
+
+/** Compact per-tier row limits so lists stay short and calm. */
+export const DAY_TIER_LIMIT: Record<DayTier, number> = { now: 3, today: 3, later: 2, optional: 0 };
