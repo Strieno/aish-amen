@@ -59,6 +59,15 @@ export default function AiAssistantPanel() {
   }, [location.pathname]);
 
   useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [open]);
+
+  useEffect(() => {
     if (open) checkStatus();
   }, [open, page]);
 

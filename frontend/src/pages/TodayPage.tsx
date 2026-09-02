@@ -142,6 +142,28 @@ export default function TodayPage() {
     refetch();
   };
 
+  // NOTE: every hook must run before any early return (Rules of Hooks).
+  const exams = data?.intelligence?.study?.exams || [];
+  const goals = data?.intelligence?.goals || [];
+  const resume = data?.intelligence?.resume;
+  const pendingLinks = data?.intelligence?.pendingLinks || [];
+  const connections = data?.intelligence?.connections || [];
+  const openCount = openTasks.length;
+  const doneToday = data?.stats.doneToday ?? 0;
+  const total = openCount + doneToday;
+  const dayProgress = total > 0 ? Math.round((doneToday / total) * 100) : 0;
+  const hasCheckin = Boolean(data?.checkin);
+
+  const hint = useMemo(() => {
+    if (!data) return '';
+    if (openTasks.length === 0 && doneToday === 0) return t('dash.sug.noTasks');
+    if (exams.length > 0) return t('dash.sug.study');
+    if (!hasCheckin) return t('dash.sug.noCheckin');
+    if (data.checkin?.energy != null && data.checkin.energy <= 2 && openTasks.length > 0) return t('dash.sug.lowEnergy');
+    return t('dash.sug.whatNow');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, openTasks.length, exams.length, hasCheckin, t]);
+
   if (loading) {
     return (
       <div className="space-y-3" role="status" aria-live="polite" aria-busy="true">
@@ -164,28 +186,6 @@ export default function TodayPage() {
       </div>
     );
   }
-
-  const exams = data?.intelligence?.study?.exams || [];
-  const goals = data?.intelligence?.goals || [];
-  const resume = data?.intelligence?.resume;
-  const pendingLinks = data?.intelligence?.pendingLinks || [];
-  const connections = data?.intelligence?.connections || [];
-  const openCount = openTasks.length;
-  const doneToday = data?.stats.doneToday ?? 0;
-  const total = openCount + doneToday;
-  const dayProgress = total > 0 ? Math.round((doneToday / total) * 100) : 0;
-  const hasCheckin = Boolean(data?.checkin);
-
-  const hint = useMemo(() => {
-    if (!data) return '';
-    if (openTasks.length === 0 && doneToday === 0) return t('dash.sug.noTasks');
-    if (exams.length > 0) return t('dash.sug.study');
-    if (!hasCheckin) return t('dash.sug.noCheckin');
-    if (data.checkin?.energy != null && data.checkin.energy <= 2 && openTasks.length > 0) return t('dash.sug.lowEnergy');
-    if (!data.checkin) return t('dash.sug.noGratitude');
-    return t('dash.sug.whatNow');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, openTasks.length, exams.length, hasCheckin, t]);
 
   return (
     <div className={`space-y-3 ${calm ? 'opacity-100' : ''}`}>

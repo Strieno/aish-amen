@@ -56,6 +56,15 @@ export default function SmartContextPanel({ open, onClose }: { open: boolean; on
     if (open) load();
   }, [open, page]);
 
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [open, onClose]);
+
   // Live refresh while the drawer is open.
   useEffect(() => {
     if (!open) return;

@@ -4,6 +4,8 @@
  * itself automatically: create a task, save a journal, complete a focus
  * session — every open panel refreshes without a manual reload.
  */
+import { cloudConfigured } from '../cloud/client';
+
 export interface LiveEvent {
   event_type: string;
   entity_type: string | null;
@@ -22,8 +24,10 @@ class LiveBus {
   start() {
     if (this.started) return;
     this.started = true;
-    const cloudMode = Boolean(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
-    if (!cloudMode) {
+    // Single source of truth for cloud detection (same trimmed logic as
+    // lib/api + AuthProvider). In cloud mode, live updates arrive through
+    // Supabase Realtime; locally they arrive through SSE.
+    if (!cloudConfigured) {
       try {
         this.es = new EventSource('/api/events/stream');
         this.es.onmessage = (ev) => {

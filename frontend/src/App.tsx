@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import Header from './components/Header';
 import MobileNav from './components/MobileNav';
 import Sidebar from './components/Sidebar';
@@ -16,6 +16,7 @@ import { initUiSounds, setUiSoundsEnabled, quietHoursActive } from './lib/sound'
 import { useAppStore } from './lib/app-store';
 
 export default function App() {
+  const location = useLocation();
   const [smartOpen, setSmartOpen] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
   const [quickType, setQuickType] = useState<'task' | 'journal' | 'gratitude'>('task');
@@ -57,7 +58,7 @@ export default function App() {
         <Header onOpenSmart={() => setSmartOpen(true)} onOpenQuick={() => { setQuickType('task'); setQuickOpen(true); }} />
         <main className="flex-1 overflow-y-auto" id="main-content">
           <div className="mx-auto w-full max-w-6xl px-3 pb-24 pt-3 md:px-5 lg:pb-10 lg:pt-4">
-            <ErrorBoundary>
+            <ErrorBoundary key={location.pathname}>
               <Outlet />
             </ErrorBoundary>
           </div>

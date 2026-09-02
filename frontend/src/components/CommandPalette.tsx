@@ -158,12 +158,7 @@ export default function CommandPalette() {
         </div>
 
         <div ref={listRef} className="mt-1.5 max-h-[58vh] overflow-y-auto px-1 pb-1" onKeyDown={onListKeyDown}>
-          {searching ? (
-            <p className="flex items-center gap-2 px-3 py-3 text-sm text-ink-faint">
-              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-brand-lighter border-t-brand" aria-hidden="true" />
-              {t('common.loading')}
-            </p>
-          ) : showResults && results ? (
+          {showResults && results ? (
             /* ---- Search results ---- */
             <div className="mt-1">
               <p className="px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-ink-faint">{t('search.title')}</p>
@@ -201,6 +196,12 @@ export default function CommandPalette() {
           ) : (
             /* ---- Commands (grouped when idle, filtered while typing) ---- */
             <div>
+              {searching && (
+                <p className="flex items-center gap-2 px-3 py-1.5 text-xs text-ink-faint">
+                  <span className="h-3 w-3 animate-spin rounded-full border-2 border-brand-lighter border-t-brand" aria-hidden="true" />
+                  {t('common.loading')}
+                </p>
+              )}
               {filteredCommands.map((c, i) => (
                 <div key={c.id}>
                   {c.groupLabel && (i === 0 || filteredCommands[i - 1].groupLabel !== c.groupLabel) && (
@@ -221,7 +222,7 @@ export default function CommandPalette() {
                   </button>
                 </div>
               ))}
-              {filteredCommands.length === 0 && <p className="px-3 py-3 text-sm text-ink-faint">{t('search.noResults')}</p>}
+              {!searching && filteredCommands.length === 0 && <p className="px-3 py-3 text-sm text-ink-faint">{t('search.noResults')}</p>}
             </div>
           )}
         </div>
